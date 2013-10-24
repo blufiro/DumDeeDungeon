@@ -192,6 +192,20 @@ ImageSprite.prototype.draw = function(ctx)
     ctx.drawImage(this.img, 0, 0);
 };
 
+/*********************************
+* GAME COMPONENT 
+*********************************/
+function Component()
+{
+    this.m_gob = null;
+}
+Component.prototype = {
+    get gameObject() { return this.m_gob; },
+    set gameObject(value) { this.m_gob = value; },
+};
+Component.prototype.update = function()
+{   //do nothing
+};
 
 /*********************************
 * GAME OBJECT 
@@ -207,6 +221,8 @@ function GameObject()
 
     this.m_speed = 0;
     this.m_angle = 0;
+
+    this.m_components  = {};
 }
 
 GameObject.prototype = {
@@ -236,6 +252,11 @@ GameObject.prototype.update = function()
 {
     this.transform.x += this.m_vx;
     this.transform.y += this.m_vy;
+
+    for(var c in this.components)
+    {
+        this.components[c].update();
+    }
 };
 
 GameObject.prototype.draw = function(ctx)
@@ -262,6 +283,57 @@ GameObject.prototype.refreshAngleSpeed = function()
 {
     this.m_speed = Math.sqrt(this.m_vx * this.m_vx + this.m_vy * this.m_vy);
     this.m_angle = Math.atan2(this.m_vy, this.m_vx);
+};
+
+GameObject.prototype.getComponent = function(componentName) { return this.m_components[componentName]; };
+GameObject.prototype.addComponent = function(componentName, component)
+{
+    if(typeof component !== "Component")
+        throw "adding invalid component";
+    if(this.m_components[componentName] !== undefined)
+        throw "replacing existing component!";
+
+    this.m_components[componentName] = component;
+    component.gameObject = this;
+};
+GameObject.prototype.removeComponent = function(componentName)
+{
+    if(this.m_components[componentName] !== undefined)
+    {
+        var component = this.m_components[componentName];
+        component.gameObject = null;
+        this.m_components[componentName] = null;
+        delete this.m_components[componentName];
+        return component;
+    }
+    return null;
+};
+
+/*********************************
+* COMMON GAME COMPONENTS
+*********************************/
+function AIWalkerComp()
+{
+    Component.call(this);
+
+    this.path = null;
+}
+// Inheritance
+AIWalkerComp.prototype = Object.create(Component.prototype);
+
+AIWalkerComp.prototype.update = function()
+{
+    //Component.prototype.update.call(this); // does nothing
+    
+    // check if reached destination
+    if(this.isWalking)
+    {
+        
+    }
+    if(this.path !== null)
+    {
+
+    }
 };
 
 /*********************************
@@ -335,7 +407,7 @@ MinHeap.prototype.downHeapify = function(i, arrlen)
     if(i != minId)
     {
         this.swap(i, minId);
-        this.downHeapify(minId);
+        this.downHeapify(minId, arrlen);
     }
 };
 MinHeap.prototype.push = function(node)
@@ -365,8 +437,8 @@ MinHeap.prototype.pop = function()
         if(arrlen > 0)
         {
             // put last element into root
-            this.array[0] = this.array.pop();
-            this.downHeapify(0, arrlen-1);
+            this.array[0] = last;
+            this.downHeapify(0, arrlen);
         }
         // else only contains root, so result is empty array
 
@@ -390,7 +462,7 @@ AStarNode.prototype = {
     get gy() { return this.m_gy; },
 
     get cameFrom() { return this.m_cameFrom; },
-    set cameFrom(value) { this.cameFrom = value; },
+    set cameFrom(value) { this.m_cameFrom = value; },
     get fScore() { return this.m_fScore; },
     set fScore(value) { this.m_fScore = value; },
     get gScore() { return this.m_gScore; },
@@ -401,14 +473,14 @@ AStarNode.prototype.getNeighbours = function(grid)
     var retArr = [];
 
     // top
-    if(grid.isEmpty(this.m_gx-1, this.m_gy-1))
-        retArr.push( {gx: this.m_gx-1, gy: this.m_gy-1} );
+    // if(grid.isEmpty(this.m_gx-1, this.m_gy-1))
+    //     retArr.push( {gx: this.m_gx-1, gy: this.m_gy-1} );
 
     if(grid.isEmpty(this.m_gx, this.m_gy-1))
         retArr.push( {gx: this.m_gx, gy: this.m_gy-1} );
 
-    if(grid.isEmpty(this.m_gx+1, this.m_gy-1))
-        retArr.push( {gx: this.m_gx+1, gy: this.m_gy-1} );
+    // if(grid.isEmpty(this.m_gx+1, this.m_gy-1))
+    //     retArr.push( {gx: this.m_gx+1, gy: this.m_gy-1} );
 
     // mid
     if(grid.isEmpty(this.m_gx-1, this.m_gy))
@@ -418,14 +490,14 @@ AStarNode.prototype.getNeighbours = function(grid)
         retArr.push( {gx: this.m_gx+1, gy: this.m_gy} );
 
     // bottom
-    if(grid.isEmpty(this.m_gx-1, this.m_gy+1))
-        retArr.push( {gx: this.m_gx-1, gy: this.m_gy+1});
+    // if(grid.isEmpty(this.m_gx-1, this.m_gy+1))
+    //     retArr.push( {gx: this.m_gx-1, gy: this.m_gy+1});
 
     if(grid.isEmpty(this.m_gx, this.m_gy+1))
         retArr.push( {gx: this.m_gx, gy: this.m_gy+1} );
 
-    if(grid.isEmpty(this.m_gx+1, this.m_gy+1))
-        retArr.push( {gx: this.m_gx+1, gy: this.m_gy+1} );
+    // if(grid.isEmpty(this.m_gx+1, this.m_gy+1))
+    //     retArr.push( {gx: this.m_gx+1, gy: this.m_gy+1} );
 
     return retArr;
 };
