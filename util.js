@@ -49,36 +49,10 @@ var Keys = {
     ALT : 18,
     ESC : 27,
     SPACE : 32,
-    LEFT_ARROW : 37,
-    UP_ARROW : 38,
-    RIGHT_ARROW : 39,
-    DOWN_ARROW : 40,
-    A : 65,
-    B : 66,
-    C : 67,
-    D : 68,
-    E : 69,
-    F : 70,
-    G : 71,
-    H : 72,
-    I : 73,
-    J : 74,
-    K : 75,
-    L : 76,
-    M : 77,
-    N : 78,
-    O : 79,
-    P : 80,
-    Q : 81,
-    R : 82,
-    S : 83,
-    T : 84,
-    U : 85,
-    V : 86,
-    W : 87,
-    X : 88,
-    Y : 89,
-    Z : 90,
+    LEFT_ARROW : 37, UP_ARROW : 38, RIGHT_ARROW : 39, DOWN_ARROW : 40,
+    A : 65, B : 66, C : 67, D : 68, E : 69, F : 70, G : 71, H : 72, I : 73,
+    J : 74, K : 75, L : 76, M : 77, N : 78, O : 79, P : 80, Q : 81, R : 82,
+    S : 83, T : 84, U : 85, V : 86, W : 87, X : 88, Y : 89, Z : 90,
 };
 
 var Input = {
@@ -91,13 +65,99 @@ var Input = {
     keyRelease : function (evt)
     {
         this.keys[evt.keyCode] = 0;
-    }
+    },
+    pointerX : 0,
+    pointerY : 0,
+    pointerIsPressed : false,
+    pointerIsReleased : false,
+    pointerIsDown : false,
+    debugString : "",
+    pointerUpdate : function()
+    {
+        this.pointerIsPressed = false;
+        this.pointerIsReleased = false;
+        debugString = "";
+    },
+    pointerStart : function(x,y)
+    {
+        this.pointerMove(x,y);
+        this.pointerIsDown = true;
+        this.pointerIsPressed = true;
+    },
+    pointerMove : function (x,y)
+    {
+        this.pointerX = x + document.body.scrollLeft + document.documentElement.scrollLeft - canvas.offsetLeft;
+        this.pointerY = y + document.body.scrollTop + document.documentElement.scrollTop - canvas.offsetTop;
+    },
+    pointerEnd : function (x,y)
+    {
+        this.pointerMove(x,y);
+        this.pointerIsDown = false;
+        this.pointerIsReleased = true;
+    },
+    mouseDown : function(evt)
+    {
+        this.pointerStart(evt.clientX, evt.clientY);
+        debugString += "mouseDown,";
+    },
+    mouseMove : function(evt)
+    {
+        this.pointerMove(evt.clientX, evt.clientY);
+        debugString += "mouseMove,";
+    },
+    mouseUp : function(evt)
+    {
+        this.pointerEnd(evt.clientX, evt.clientY);
+        debugString += "mouseUp,";
+    },
+    touchStart : function(evt)
+    {
+        evt.preventDefault();
+        this.pointerStart(evt.targetTouches[0].clientX, evt.targetTouches[0].clientY);
+        debugString += "touchStart,";
+    },
+    touchMove : function(evt)
+    {
+        evt.preventDefault();
+        this.pointerMove(evt.targetTouches[0].clientX, evt.targetTouches[0].clientY);
+        debugString += "touchMove,";
+    },
+    touchEnd : function(evt)
+    {
+        evt.preventDefault();
+        // touch end does not have any touches or targetTouches, so we use changedTouches
+        this.pointerEnd(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY);
+        debugString += "touchEnd,";
+    },
 };
-function registerInputEvents(element)
+Input.pointerUpdate.bind(Input);
+
+function registerInputEvents(canvas, preventScrolling)
 {
-    console.log("registerInputEvents", element);
-    element.addEventListener("keydown", Input.keyPress.bind(Input));
-    element.addEventListener("keyup", Input.keyRelease.bind(Input));
+    console.log("registerInputEvents", window);
+
+    // key events
+    window.addEventListener("keydown", Input.keyPress.bind(Input), false);
+    window.addEventListener("keyup", Input.keyRelease.bind(Input), false);
+
+    // mouse events
+    canvas.addEventListener("mousedown", Input.mouseDown.bind(Input), false);
+    canvas.addEventListener("mousemove", Input.mouseMove.bind(Input), false);
+    document.body.addEventListener("mouseup", Input.mouseUp.bind(Input), false);
+    
+    // touch events
+    canvas.addEventListener("touchstart", Input.touchStart.bind(Input), false);
+    canvas.addEventListener("touchmove", Input.touchMove.bind(Input), true);
+    canvas.addEventListener("touchend", Input.touchEnd.bind(Input), false);
+    document.body.addEventListener("touchcancel", Input.touchEnd.bind(Input), false);
+
+    // prevent scrolling
+    if(preventScrolling)
+    {
+        document.body.addEventListener('touchmove', function(event) {
+          event.preventDefault();
+        }, false);
+    }
 }
 
 /*********************************

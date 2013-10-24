@@ -6,7 +6,7 @@ var context;
 var resources;
 var playerGob;
 var intervalID;
-var showFPS = true;
+var showDebugInfo = true;
 
 function main()
 {
@@ -19,12 +19,14 @@ function main()
 	context = canvas.getContext("2d");
 
 	// input event listeners
-	registerInputEvents(window);
+	registerInputEvents(canvas, true);
 }
 
 function onResourcesLoaded()
 {
 	var imgs = {
+		"player" : "images/player.png",
+		"bg" : "images/bg.png",
 		"gradient" : "images/gradient.jpg"
 	};
 
@@ -36,17 +38,19 @@ function init()
 {
 	console.log("init()");
 
+	bgGob = new GameObject();
+	bgGob.sprite = new ImageSprite( resources.images["bg"] );
 	playerGob = new Player();
 	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
-	//mainloop();
 }
 
 function mainloop()
 {
 	update();
 	draw();
-	drawFPS();
+	drawDebugInfo();
+	Input.pointerUpdate();
 }
 
 function update()
@@ -59,22 +63,27 @@ function draw()
 {
 	context.clearRect(0,0, w, h);
 
-	context.fillStyle='#712033';
-	context.fillRect(50,50,100,80);
+	// context.fillStyle='#712033';
+	// context.fillRect(50,50,100,80);
 
-
+	bgGob.draw(context);
 	playerGob.draw(context);
 }
 
-function drawFPS()
+function drawDebugInfo()
 {
-	if(showFPS)
+	if(showDebugInfo)
 	{
-		// fps
 		context.setTransform(1,0,0,1,0,0);
 		context.font="12px Monospace";
 		context.fillStyle="#000000";
+
+		// fps
 		context.fillText(getFpsString(), 10, 20);
+
+		// mouse / touch pos
+		context.fillText("pointerXY["+Input.pointerX+","+Input.pointerY+"]", 10, 38);
+		context.fillText("input debug:",Input.debugString, 10, 50);
 	}
 }
 
@@ -84,7 +93,7 @@ function drawFPS()
 function Player()
 {
 	GameObject.call(this);
-	this.sprite = new ImageSprite( resources.images["gradient"] );
+	this.sprite = new ImageSprite( resources.images["player"] );
 
 	//this.vx = 1;
 
@@ -119,5 +128,11 @@ Player.prototype.update = function()
 	else if(Input.keys[Keys.DOWN_ARROW])
 	{
 		this.y += 5;
+	}
+
+	if(Input.pointerIsPressed || Input.pointerIsReleased)
+	{
+		this.x = Input.pointerX;
+		this.y = Input.pointerY;
 	}
 };
