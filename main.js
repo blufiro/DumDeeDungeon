@@ -5,6 +5,7 @@ var context;
 
 var resources;
 var playerGob;
+var gridOb;
 var intervalID;
 var showDebugInfo = true;
 
@@ -40,6 +41,7 @@ function init()
 
 	bgGob = new GameObject();
 	bgGob.sprite = new ImageSprite( resources.images["bg"] );
+	gridOb = new Grid(w/32, h/32, w, h);
 	playerGob = new Player();
 	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
@@ -68,6 +70,12 @@ function draw()
 
 	bgGob.draw(context);
 	playerGob.draw(context);
+
+	if(playerGob.path)
+		for(var i=0; i<playerGob.path.length; i++)
+		{
+			context.drawImage(playerGob.sprite.img, gridOb.toX(playerGob.path[i].gx), gridOb.toY(playerGob.path[i].gy));
+		}
 }
 
 function drawDebugInfo()
@@ -83,7 +91,7 @@ function drawDebugInfo()
 
 		// mouse / touch pos
 		context.fillText("pointerXY["+Input.pointerX+","+Input.pointerY+"]", 10, 38);
-		context.fillText("input debug:",Input.debugString, 10, 50);
+		context.fillText("input debug:"+Input.debugString, 10, 50);
 	}
 }
 
@@ -97,7 +105,12 @@ function Player()
 
 	//this.vx = 1;
 
-	console.log("vx",this.vx);
+	this.gx = gridOb.toGX(this.x);
+	this.gy = gridOb.toGY(this.y);
+
+	this.targetGX = this.gx;
+	this.targetGY = this.gy;
+	this.path = null;
 }
 
 // Inheritance
@@ -108,31 +121,43 @@ Player.prototype.update = function()
 {
 	GameObject.prototype.update.call(this);
 	
-	if(this.x > w)
-	{
-		this.x = 0;
-	}
+	// if(this.x > w)
+	// {
+	// 	this.x = 0;
+	// }
 
-	if(Input.keys[Keys.LEFT_ARROW])
-	{
-		this.x -= 5;
-	}
-	else if(Input.keys[Keys.RIGHT_ARROW])
-	{
-		this.x += 5;
-	}
-	if(Input.keys[Keys.UP_ARROW])
-	{
-		this.y -= 5;
-	}
-	else if(Input.keys[Keys.DOWN_ARROW])
-	{
-		this.y += 5;
-	}
+	// if(Input.keys[Keys.LEFT_ARROW])
+	// {
+	// 	this.x -= 5;
+	// }
+	// else if(Input.keys[Keys.RIGHT_ARROW])
+	// {
+	// 	this.x += 5;
+	// }
+	// if(Input.keys[Keys.UP_ARROW])
+	// {
+	// 	this.y -= 5;
+	// }
+	// else if(Input.keys[Keys.DOWN_ARROW])
+	// {
+	// 	this.y += 5;
+	// }
 
-	if(Input.pointerIsPressed || Input.pointerIsReleased)
+	if(Input.pointerIsDown)
 	{
-		this.x = Input.pointerX;
-		this.y = Input.pointerY;
+		var newTargetGX = gridOb.toGX(Input.pointerX);
+		var newTargetGY = gridOb.toGY(Input.pointerY);
+
+		console.log("new target", newTargetGX, newTargetGY);
+
+		if(newTargetGX !== this.targetGX || newTargetGY !== this.targetGY)
+		{
+			this.targetGX = newTargetGX; this.targetGY = newTargetGY;
+			this.path = AStar.search(this.gx, this.gy, this.targetGX, this.targetGY, gridOb);
+		}
 	}
 };
+// Player.prototype.draw = function()
+// {
+// 	GameObject.prototype.draw.call(this);
+// }

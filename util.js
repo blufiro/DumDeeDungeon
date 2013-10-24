@@ -76,7 +76,7 @@ var Input = {
     {
         this.pointerIsPressed = false;
         this.pointerIsReleased = false;
-        debugString = "";
+        this.debugString = "";
     },
     pointerStart : function(x,y)
     {
@@ -98,36 +98,36 @@ var Input = {
     mouseDown : function(evt)
     {
         this.pointerStart(evt.clientX, evt.clientY);
-        debugString += "mouseDown,";
+        this.debugString += "mouseDown,";
     },
     mouseMove : function(evt)
     {
         this.pointerMove(evt.clientX, evt.clientY);
-        debugString += "mouseMove,";
+        this.debugString += "mouseMove,";
     },
     mouseUp : function(evt)
     {
         this.pointerEnd(evt.clientX, evt.clientY);
-        debugString += "mouseUp,";
+        this.debugString += "mouseUp,";
     },
     touchStart : function(evt)
     {
         evt.preventDefault();
         this.pointerStart(evt.targetTouches[0].clientX, evt.targetTouches[0].clientY);
-        debugString += "touchStart,";
+        this.debugString += "touchStart,";
     },
     touchMove : function(evt)
     {
         evt.preventDefault();
         this.pointerMove(evt.targetTouches[0].clientX, evt.targetTouches[0].clientY);
-        debugString += "touchMove,";
+        this.debugString += "touchMove,";
     },
     touchEnd : function(evt)
     {
         evt.preventDefault();
         // touch end does not have any touches or targetTouches, so we use changedTouches
         this.pointerEnd(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY);
-        debugString += "touchEnd,";
+        this.debugString += "touchEnd,";
     },
 };
 Input.pointerUpdate.bind(Input);
@@ -262,4 +262,275 @@ GameObject.prototype.refreshAngleSpeed = function()
 {
     this.m_speed = Math.sqrt(this.m_vx * this.m_vx + this.m_vy * this.m_vy);
     this.m_angle = Math.atan2(this.m_vy, this.m_vx);
+};
+
+/*********************************
+* GRID 
+*********************************/
+function Grid(numCellsX, numCellsY, worldWidth, worldHeight)
+{
+    this.m_nx = numCellsX;
+    this.m_ny = numCellsY;
+    this.m_ww = worldWidth;
+    this.m_wh = worldHeight;
+
+    for(var gx = 0; gx < this.m_nx; gx++)
+    {
+        this[gx] = [];
+        for(var gy = 0; gy < this.m_ny; gy++)
+        {
+            this[gx][gy] = 0;
+        }
+    }
+}
+
+Grid.prototype = {
+    get nx () { return this.m_nx; },
+    get ny () { return this.m_ny; },
+};
+
+Grid.prototype.isEmpty = function(gx,gy)
+{
+    return (gx >= 0 && gx < this.m_nx &&
+            gy >= 0 && gy < this.m_ny &&
+            this[gx][gy] === 0);
+};
+Grid.prototype.toGX = function (x) { return Math.floor(x * this.m_nx / this.m_ww); };
+Grid.prototype.toGY = function (y) { return Math.floor(y * this.m_ny / this.m_wh); };
+Grid.prototype.toX = function (gx) { return gx * this.m_ww / this.m_nx; };
+Grid.prototype.toY = function (gy) { return gy * this.m_wh / this.m_ny; };
+
+/*********************************
+* MinHeap
+* nodes that are added must implement less(otherNode) function
+*********************************/
+
+function MinHeap()
+{
+    this.array = [];
+}
+MinHeap.prototype.parentIndex = function(i) { return (i-1) >> 1; };
+MinHeap.prototype.leftChildIndex = function(i) { return (i << 1) + 1; };
+MinHeap.prototype.rightChildIndex = function(i) { return (i << 1) + 2; };
+MinHeap.prototype.swap = function(i, j)
+{
+    var temp = this.array[i];
+    this.array[i] = this.array[j];
+    this.array[j] = temp;
+};
+MinHeap.prototype.isEmpty = function()
+{
+    return (this.array.length === 0);
+};
+MinHeap.prototype.downHeapify = function(i, arrlen)
+{
+    var minId = i;
+    var leftId = this.leftChildIndex(minId);
+    var rightId = this.rightChildIndex(minId);
+    if(leftId < arrlen && this.array[leftId].less( this.array[minId] ))
+        minId = leftId;
+    if(rightId < arrlen && this.array[rightId].less( this.array[minId] ))
+        minId = rightId;
+
+    if(i != minId)
+    {
+        this.swap(i, minId);
+        this.downHeapify(minId);
+    }
+};
+MinHeap.prototype.push = function(node)
+{
+    var len = this.array.push(node);
+    
+    //  heapify upwards
+    var i  = len-1;
+    var parentId = this.parentIndex(i);
+    
+    while(i > 0 && this.array[i].less( this.array[parentId] ) )
+    {
+        this.swap(i, parentId);
+        i = parentId;
+    }
+};
+MinHeap.prototype.pop = function()
+{
+    if(this.isEmpty())
+        return null;
+    else
+    {
+        var returnNode = this.array[0];
+
+        var last = this.array.pop();
+        var arrlen = this.array.length;
+        if(arrlen > 0)
+        {
+            // put last element into root
+            this.array[0] = this.array.pop();
+            this.downHeapify(0, arrlen-1);
+        }
+        // else only contains root, so result is empty array
+
+        return returnNode;
+    }
+};
+
+/*********************************
+* A STAR PATHFINDING 
+*********************************/
+function AStarNode(gx_, gy_, cameFrom_, gScore_, fScore_)
+{
+    this.m_gx = gx_;
+    this.m_gy = gy_;
+    this.m_cameFrom = cameFrom_;
+    this.m_gScore = gScore_;
+    this.m_fScore = fScore_;
+}
+AStarNode.prototype = {
+    get gx() { return this.m_gx; },
+    get gy() { return this.m_gy; },
+
+    get cameFrom() { return this.m_cameFrom; },
+    set cameFrom(value) { this.cameFrom = value; },
+    get fScore() { return this.m_fScore; },
+    set fScore(value) { this.m_fScore = value; },
+    get gScore() { return this.m_gScore; },
+    set gScore(value) { this.m_gScore = value;},
+};
+AStarNode.prototype.getNeighbours = function(grid)
+{
+    var retArr = [];
+
+    // top
+    if(grid.isEmpty(this.m_gx-1, this.m_gy-1))
+        retArr.push( {gx: this.m_gx-1, gy: this.m_gy-1} );
+
+    if(grid.isEmpty(this.m_gx, this.m_gy-1))
+        retArr.push( {gx: this.m_gx, gy: this.m_gy-1} );
+
+    if(grid.isEmpty(this.m_gx+1, this.m_gy-1))
+        retArr.push( {gx: this.m_gx+1, gy: this.m_gy-1} );
+
+    // mid
+    if(grid.isEmpty(this.m_gx-1, this.m_gy))
+        retArr.push( {gx: this.m_gx-1, gy: this.m_gy} );
+
+    if(grid.isEmpty(this.m_gx+1, this.m_gy))
+        retArr.push( {gx: this.m_gx+1, gy: this.m_gy} );
+
+    // bottom
+    if(grid.isEmpty(this.m_gx-1, this.m_gy+1))
+        retArr.push( {gx: this.m_gx-1, gy: this.m_gy+1});
+
+    if(grid.isEmpty(this.m_gx, this.m_gy+1))
+        retArr.push( {gx: this.m_gx, gy: this.m_gy+1} );
+
+    if(grid.isEmpty(this.m_gx+1, this.m_gy+1))
+        retArr.push( {gx: this.m_gx+1, gy: this.m_gy+1} );
+
+    return retArr;
+};
+AStarNode.prototype.less = function(otherNode)
+{
+    return this.fScore < otherNode.fScore;
+};
+
+var AStar = {
+    distBetween : function(node, gx, gy)
+    {
+        return Math.abs(node.gx - gx) + Math.abs(node.gy - gy);
+    },
+    heuristicCostEstimate : function(goal, gx, gy)
+    {
+        return Math.abs(goal.gx - gx) + Math.abs(goal.gy - gy);
+    },
+    // returns an array of came from AStarNodes
+    reconstructPath : function(node)
+    {
+        if(node.cameFrom)
+        {
+            var arr = this.reconstructPath(node.cameFrom);
+            arr.push(node);
+            return arr;
+        }
+        else
+            return [node];
+    },
+    // search with nodes
+    search : function(startGX, startGY, goalGX, goalGY, grid)
+    {
+        var openPQ = new MinHeap();
+        var openSet = {};
+        var closedSet = {};
+
+        var goal = new AStarNode(goalGX, goalGY, null, 0, 0);
+        var start = new AStarNode(startGX, startGY, null, 0, this.heuristicCostEstimate(goal, startGX, startGY) );
+        openPQ.push(start);
+        openSet[start.gx] = {};
+        openSet[start.gx][start.gy] = start;
+
+        var curr;
+        var neighbours;
+        var n;
+        var tempNode;
+        while( !openPQ.isEmpty()  )
+        {
+            // remove from open set
+            curr = openPQ.pop();
+            delete openSet[curr.gx][curr.gy];
+            if ((curr.gx === goal.gx) && (curr.gy === goal.gy))
+                return this.reconstructPath(curr);
+
+            // add to closed set
+            if(closedSet[curr.gx] === undefined)
+                closedSet[curr.gx] = {};
+            closedSet[curr.gx][curr.gy] = curr;
+
+            // check neighbours
+            neighbours = curr.getNeighbours(grid);
+            for(var i=neighbours.length-1; i >= 0; i--)
+            {
+                n = neighbours[i];
+                tempNode = null;
+                var tentativeGScore = curr.gScore + this.distBetween(curr, n.gx, n.gy);
+                var tentativeFScore = tentativeGScore + this.heuristicCostEstimate(goal, n.gx, n.gy);
+                if(closedSet[n.gx] !== undefined && closedSet[n.gx][n.gy] !== undefined)
+                {
+                    if(tentativeFScore >= closedSet[n.gx][n.gy].fScore)
+                        continue;
+                    else
+                    {
+                        // update fscore and put back into openPQ
+                        tempNode = closedSet[n.gx][n.gy];
+                        delete closedSet[n.gx][n.gy];
+                        tempNode.fScore = tentativeFScore;
+                        tempNode.gScore = tentativeGScore;
+                        tempNode.cameFrom = curr;
+                        openPQ.push(tempNode);
+                        if(!openSet[tempNode.gx])
+                            openSet[tempNode.gx] = {};
+                        openSet[tempNode.gx][tempNode.gy] = tempNode;
+                    }
+                }
+                else if(openSet[n.gx] !== undefined && openSet[n.gx][n.gy] !== undefined)
+                {
+                    // update in openPQ
+                    tempNode = openSet[n.gx][n.gy];
+                    if(tentativeFScore < tempNode.fScore)
+                    {
+                        tempNode.fScore = tentativeFScore;
+                        tempNode.gScore = tentativeGScore;
+                        tempNode.cameFrom = curr;
+                    }
+                }
+                else
+                {   // create new node
+                    tempNode = new AStarNode(n.gx, n.gy, curr, tentativeGScore, tentativeFScore);
+                    openPQ.push(tempNode);
+                    if(openSet[tempNode.gx] === undefined)
+                        openSet[tempNode.gx] = {};
+                    openSet[tempNode.gx][tempNode.gy] = tempNode;
+                }
+            }//end for neighbour n
+        }//end while
+    },
 };
