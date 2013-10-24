@@ -4,6 +4,86 @@
 		"selected_items":
 		[
 			[
+				"compon",
+				"component"
+			],
+			[
+				"ten",
+				"tentativeGScore"
+			],
+			[
+				"newt",
+				"newTargetGY"
+			],
+			[
+				"temp",
+				"tempNode"
+			],
+			[
+				"open",
+				"openSet"
+			],
+			[
+				"closed",
+				"closedSet"
+			],
+			[
+				"target",
+				"targetGX"
+			],
+			[
+				"newTa",
+				"newTargetGY"
+			],
+			[
+				"num",
+				"numCellsY"
+			],
+			[
+				"Grid",
+				"gridOb"
+			],
+			[
+				"right",
+				"rightChildIndex"
+			],
+			[
+				"paren",
+				"parentNode"
+			],
+			[
+				"goalG",
+				"goalGY"
+			],
+			[
+				"Ast",
+				"AStarNode"
+			],
+			[
+				"tent",
+				"tentativeGScore"
+			],
+			[
+				"came",
+				"cameFrom"
+			],
+			[
+				"m_g",
+				"m_gScore"
+			],
+			[
+				"tentat",
+				"tentativeFScore"
+			],
+			[
+				"AStar",
+				"AStarNode"
+			],
+			[
+				"tentative",
+				"tentativeGScore"
+			],
+			[
 				"pointer",
 				"pointerIsPressed"
 			],
@@ -51,7 +131,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 2296,
+				"buffer_size": 3084,
 				"line_ending": "Windows"
 			}
 		},
@@ -59,7 +139,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 7374,
+				"buffer_size": 17571,
 				"line_ending": "Windows"
 			}
 		},
@@ -127,6 +207,14 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"[]",
+			"contain",
+			"conatins",
+			"distBet",
+			"isEmpt",
+			"debugStr",
+			"openSet",
+			"defaultFor",
 			"console",
 			"pointer",
 			"showFPS",
@@ -154,6 +242,9 @@
 		"regex": false,
 		"replace_history":
 		[
+			"{}",
+			"this.debugStr",
+			"openPQ",
 			"this.pointer",
 			"showDebugInfo",
 			" ",
@@ -180,7 +271,7 @@
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -303,15 +394,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 2296,
+						"buffer_size": 3084,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1505,
-								1505
+								2094,
+								2164
 							]
 						],
 						"settings":
@@ -409,7 +500,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 836.0,
+						"translation.y": 1685.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -419,15 +510,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 7374,
+						"buffer_size": 17571,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3711,
-								3711
+								9100,
+								9100
 							]
 						],
 						"settings":
@@ -526,7 +617,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1436.0,
+						"translation.y": 4397.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
