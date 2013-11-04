@@ -11,6 +11,13 @@
 	<!-- scripts to include -->
 <script src="util.js"></script>
 <script src="main.js"></script>
+<script>
+function onError(e)
+{
+	alert(e.name+"\n"+e.message );
+	throw e;
+}
+</script>
 </head>
 
 <body style="margin:0px">
@@ -19,14 +26,7 @@
 
 
 <script>
-try
-{
-	main();
-}
-catch(e)
-{
-	alert(e.name+"\n"+e.message );
-}
+main(onError);
 </script>
 
 </body>

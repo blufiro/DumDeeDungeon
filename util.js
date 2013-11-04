@@ -38,6 +38,15 @@ function getFpsString()
 }
 
 /*********************************
+* DIRECTION INDICES
+*********************************/
+var DIRECTION_NONE = 0;
+var DIRECTION_NORTH = 1;
+var DIRECTION_SOUTH = (1<<1);
+var DIRECTION_EAST = (1<<2);
+var DIRECTION_WEST = (1<<3);
+
+/*********************************
 * INPUT 
 *********************************/
 
@@ -248,14 +257,20 @@ GameObject.prototype = {
     set angleRad(value) { this.m_angle = value; this.refreshVelocity(); },
 };
 
+GameObject.prototype.vxy = function(vx_ , vy_)
+{
+    this.m_vx = vx_;        this.m_vy = vy_;
+    this.refreshAngleSpeed();
+};
+
 GameObject.prototype.update = function()
 {
     this.transform.x += this.m_vx;
     this.transform.y += this.m_vy;
 
-    for(var c in this.components)
+    for(var c in this.m_components)
     {
-        this.components[c].update();
+        this.m_components[c].update();
     }
 };
 
@@ -288,7 +303,7 @@ GameObject.prototype.refreshAngleSpeed = function()
 GameObject.prototype.getComponent = function(componentName) { return this.m_components[componentName]; };
 GameObject.prototype.addComponent = function(componentName, component)
 {
-    if(typeof component !== "Component")
+    if(! (component instanceof Component) )
         throw "adding invalid component";
     if(this.m_components[componentName] !== undefined)
         throw "replacing existing component!";
@@ -312,15 +327,66 @@ GameObject.prototype.removeComponent = function(componentName)
 /*********************************
 * COMMON GAME COMPONENTS
 *********************************/
-function AIWalkerComp()
+function AIWalkerComp(gridOb, speed)
 {
     Component.call(this);
 
     this.path = null;
+    this.grid = gridOb;
+    this.walkSpeed = speed;
+
+    this.stopWalk();
 }
 // Inheritance
 AIWalkerComp.prototype = Object.create(Component.prototype);
+AIWalkerComp.prototype.walk = function(currCell, destCell)
+{
+    this.destX = this.grid.toX(destCell.gx);
+    this.destY = this.grid.toY(destCell.gy);
+    
+    var px = destCell.gx - currCell.gx;
+    var py = destCell.gy - currCell.gy;
+    if(px > 0)
+    {
+        this.walkDir = DIRECTION_EAST;
+        this.gameObject.vxy(this.walkSpeed, 0);
+    }
+    else if(px < 0)
+    {
+        this.walkDir = DIRECTION_WEST;
+        this.gameObject.vxy(-this.walkSpeed, 0);
+    }
+    else if(py > 0)
+    {
+        this.walkDir = DIRECTION_SOUTH;
+        this.gameObject.vxy(0, this.walkSpeed);
+    }
+    else if(py < 0)
+    {
+        this.walkDir = DIRECTION_NORTH;
+        this.gameObject.vxy(0, -this.walkSpeed);
+    }
 
+    this.isWalking = true;
+};
+AIWalkerComp.prototype.snapToDest = function()
+{
+    if(this.gameObject)
+    {
+        this.gameObject.x = this.destX;
+        this.gameObject.y = this.destY;
+    }
+};
+AIWalkerComp.prototype.stopWalk = function()
+{
+    // note this is used in initialization also
+    this.isWalking = false;
+    this.destX = -1;
+    this.destY = -1;
+    this.walkDir = DIRECTION_NONE;
+    if(this.gameObject)
+        this.gameObject.speed = 0;
+};
 AIWalkerComp.prototype.update = function()
 {
     //Component.prototype.update.call(this); // does nothing
@@ -328,11 +394,75 @@ AIWalkerComp.prototype.update = function()
     // check if reached destination
     if(this.isWalking)
     {
-        
-    }
-    if(this.path !== null)
-    {
+        if(this.destX !== -1 && this.destY !== -1)
+        {
+            var bReached;
+            switch(this.walkDir)
+            {
+                case DIRECTION_NORTH: bReached = (this.gameObject.y <= this.destY); break;
+                case DIRECTION_SOUTH: bReached = (this.gameObject.y >= this.destY); break;
+                case DIRECTION_EAST: bReached = (this.gameObject.x >= this.destX); break;
+                case DIRECTION_WEST: bReached = (this.gameObject.x <= this.destX); break;
+                default: bReached = true; break;
+            }
 
+            if(bReached)
+            {
+                // measure overflow
+                var overflow = 0;
+                switch(this.walkDir)
+                {
+                    case DIRECTION_NORTH:
+                    case DIRECTION_SOUTH: overflow = this.destY - this.gameObject.y; break;
+                    case DIRECTION_EAST:
+                    case DIRECTION_WEST: overflow = this.destX - this.gameObject.x; break;
+                }
+
+                // snap and update current cell id
+                this.snapToDest();
+                this.gameObject.gx = this.grid.toGX(this.gameObject.x);
+                this.gameObject.gy = this.grid.toGY(this.gameObject.y);
+                
+                // shift out old cell
+                if(this.path !== null)
+                {
+                    while(this.path.length > 0 &&
+                        !this.grid.isCellEqual(this.path[0].gx, this.path[0].gy, this.gameObject.gx, this.gameObject.gy))
+                        this.path.shift();
+                }
+
+                if(this.path === null || this.path.length <= 1)
+                {
+                    this.stopWalk();
+                    return;
+                }
+
+                this.walk(this.path[0], this.path[1]);
+
+                // push overflow into new direction
+                switch(this.walkDir)
+                {
+                    case DIRECTION_NORTH:
+                    case DIRECTION_SOUTH: this.gameObject.y -= overflow; break;
+                    case DIRECTION_EAST:
+                    case DIRECTION_WEST: this.gameObject.x -= overflow; break;
+                }
+
+            }//end if(bReached)
+        }// end if(this.destX !== -1 && this.destY !== -1)
+        else
+        {
+            this.stopWalk();
+            return;
+        }
+    }
+    else
+    {
+        // set a new destination and start walking again
+        if(this.path !== null && this.path.length > 1)
+        {
+            this.walk(this.path[0], this.path[1]);
+        }
     }
 };
 
@@ -371,6 +501,7 @@ Grid.prototype.toGX = function (x) { return Math.floor(x * this.m_nx / this.m_ww
 Grid.prototype.toGY = function (y) { return Math.floor(y * this.m_ny / this.m_wh); };
 Grid.prototype.toX = function (gx) { return gx * this.m_ww / this.m_nx; };
 Grid.prototype.toY = function (gy) { return gy * this.m_wh / this.m_ny; };
+Grid.prototype.isCellEqual = function(gx1, gy1, gx2, gy2) { return gx1 === gx2 && gy1 === gy2; };
 
 /*********************************
 * MinHeap

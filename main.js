@@ -2,6 +2,7 @@ var canvas;
 var w;
 var h;
 var context;
+var onErrorFunc;
 
 var resources;
 var playerGob;
@@ -9,18 +10,27 @@ var gridOb;
 var intervalID;
 var showDebugInfo = true;
 
-function main()
+function main(onErrorFunc_)
 {
-	loadScript("resources.js", onResourcesLoaded);
+	onErrorFunc = onErrorFunc_;
 
-	canvas = document.getElementsByTagName('canvas')[0];
-	w = canvas.width;
-	h = canvas.height;
-	console.log(w+" "+h);
-	context = canvas.getContext("2d");
+	try
+	{
+		loadScript("resources.js", onResourcesLoaded);
 
-	// input event listeners
-	registerInputEvents(canvas, true);
+		canvas = document.getElementsByTagName('canvas')[0];
+		w = canvas.width;
+		h = canvas.height;
+		console.log(w+" "+h);
+		context = canvas.getContext("2d");
+
+		// input event listeners
+		registerInputEvents(canvas, true);
+	}
+	catch(e)
+	{
+		onErrorFunc(e);
+	}
 }
 
 function onResourcesLoaded()
@@ -49,10 +59,17 @@ function init()
 
 function mainloop()
 {
-	update();
-	draw();
-	drawDebugInfo();
-	Input.pointerUpdate();
+	try
+	{
+		update();
+		draw();
+		drawDebugInfo();
+		Input.pointerUpdate();
+	}
+	catch(e)
+	{
+		onErrorFunc(e);
+	}
 }
 
 function update()
@@ -70,14 +87,25 @@ function draw()
 
 	bgGob.draw(context);
 	playerGob.draw(context);
-
-	if(playerGob.path)
-		for(var i=0; i<playerGob.path.length; i++)
-		{
-			context.drawImage(playerGob.sprite.img, gridOb.toX(playerGob.path[i].gx), gridOb.toY(playerGob.path[i].gy));
-		}
 }
-
+function drawDebugPath(path, strokeStyle_)
+{
+	if(path && path.length > 0)
+	{
+		context.beginPath();
+		context.strokeStyle = strokeStyle_;
+		var pathx = gridOb.toX(path[0].gx + 0.5);
+		var pathy = gridOb.toY(path[0].gy + 0.5);
+		context.moveTo(pathx, pathy);
+		for(var i=1; i<path.length; i++)
+		{
+			pathx = gridOb.toX(path[i].gx + 0.5);
+			pathy = gridOb.toY(path[i].gy + 0.5);
+			context.lineTo(pathx, pathy);
+		}
+		context.stroke();
+	}
+}
 function drawDebugInfo()
 {
 	if(showDebugInfo)
@@ -85,6 +113,8 @@ function drawDebugInfo()
 		context.setTransform(1,0,0,1,0,0);
 		context.font="12px Monospace";
 		context.fillStyle="#000000";
+
+		drawDebugPath(playerGob.getComponent("AIWalkerComp").path, '#FF0000');
 
 		// fps
 		context.fillText(getFpsString(), 10, 20);
@@ -110,7 +140,8 @@ function Player()
 
 	this.targetGX = this.gx;
 	this.targetGY = this.gy;
-	this.path = null;
+	
+	this.addComponent( "AIWalkerComp", new AIWalkerComp(gridOb, 2) );
 }
 
 // Inheritance
@@ -153,7 +184,15 @@ Player.prototype.update = function()
 		if(newTargetGX !== this.targetGX || newTargetGY !== this.targetGY)
 		{
 			this.targetGX = newTargetGX; this.targetGY = newTargetGY;
-			this.path = AStar.search(this.gx, this.gy, this.targetGX, this.targetGY, gridOb);
+			var aiwalkercomp = this.getComponent("AIWalkerComp");
+			var nextGX = this.gx;
+			var nextGY = this.gy;
+			if(aiwalkercomp.isWalking && aiwalkercomp.path.length > 1)
+			{
+				nextGX = gridOb.toGX(aiwalkercomp.destX);
+				nextGY = gridOb.toGY(aiwalkercomp.destY);
+			}
+			aiwalkercomp.path = AStar.search(nextGX, nextGY, this.targetGX, this.targetGY, gridOb);
 		}
 	}
 };
