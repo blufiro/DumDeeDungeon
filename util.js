@@ -18,6 +18,55 @@ function loadScript(url, callback)
 function defaultFor(arg, val) { return typeof arg !== 'undefined' ? arg : val; }
 
 /*********************************
+* RESIZE GAME, KEEP ASPECT RATIO
+* from Gopherwood Studios
+* http://www.html5rocks.com/en/tutorials/casestudies/gopherwoord-studios-resizing-html5-games/
+*********************************/
+var canvasWidth;
+var canvasHeight;
+var gameWidth;
+var gameHeight;
+var widthToHeight;
+var canvasRatioX;
+var canvasRatioY;
+function canvas2gameX(canvasX) {return canvasX / canvasRatioX;}
+function canvas2gameY(canvasY) {return canvasY / canvasRatioY;}
+function game2canvasX(gameX) {return gameX * canvasRatioX;}
+function game2canvasY(gameY) {return gameY * canvasRatioY;}
+function resizeGame()
+{
+    var gameArea = document.getElementById('gameArea');
+    var newWidth = window.innerWidth;
+    var newHeight = window.innerHeight;
+    var newWidthToHeight = newWidth / newHeight;
+    
+    if (newWidthToHeight > widthToHeight) {
+        newWidth = newHeight * widthToHeight;
+        gameArea.style.height = newHeight + 'px';
+        gameArea.style.width = newWidth + 'px';
+    } else {
+        newHeight = newWidth / widthToHeight;
+        gameArea.style.width = newWidth + 'px';
+        gameArea.style.height = newHeight + 'px';
+    }
+    
+    gameArea.style.marginTop = (-newHeight / 2) + 'px';
+    gameArea.style.marginLeft = (-newWidth / 2) + 'px';
+    
+    var gameCanvas = document.getElementById('gameCanvas');
+    gameCanvas.width = newWidth;
+    gameCanvas.height = newHeight;
+    canvasWidth = newWidth;
+    canvasHeight = newHeight;
+
+    canvasRatioX = canvasWidth / gameWidth;
+    canvasRatioY = canvasHeight / gameHeight;
+
+    console.log("resizeGame "+newWidth+","+newHeight, gameCanvas, gameArea);
+}
+
+
+/*********************************
 * FRAME RATE 
 *********************************/
 
@@ -77,6 +126,8 @@ var Input = {
     },
     pointerX : 0,
     pointerY : 0,
+    pointerCanvasX : 0,
+    pointerCanvasY : 0,
     pointerIsPressed : false,
     pointerIsReleased : false,
     pointerIsDown : false,
@@ -95,8 +146,11 @@ var Input = {
     },
     pointerMove : function (x,y)
     {
-        this.pointerX = x + document.body.scrollLeft + document.documentElement.scrollLeft - canvas.offsetLeft;
-        this.pointerY = y + document.body.scrollTop + document.documentElement.scrollTop - canvas.offsetTop;
+        this.pointerCanvasX = x + document.body.scrollLeft + document.documentElement.scrollLeft - canvas.parentNode.offsetLeft;
+        this.pointerCanvasY = y + document.body.scrollTop + document.documentElement.scrollTop - canvas.parentNode.offsetTop;
+
+        this.pointerX = Math.floor(canvas2gameX( this.pointerCanvasX ));
+        this.pointerY = Math.floor(canvas2gameY( this.pointerCanvasY ));
     },
     pointerEnd : function (x,y)
     {
@@ -736,4 +790,73 @@ var AStar = {
             }//end for neighbour n
         }//end while
     },
+};
+
+/*********************************
+* WEB SOCKETS NETWORKING
+* This uses WebRTC. Please include peer.min.js http://peerjs.com/
+*********************************/
+function Net(key_)
+{
+    this.m_peer = new Peer({key: key_});
+    this.m_peer.on('open', this.onOpen);
+    this.m_peer.on('connection', this.onConnect);
+    this.m_peer.on('close', this.onClose);
+    this.m_peer.on('error', this.onError);
+
+    this.m_peerID = null;
+    this.m_connection = null;
+    this.m_lastsent = null;
+    this.m_lastrecv = null;
+}
+Net.prototype = {
+    get isConnected() { return (this.m_peer && !this.m_peer.disconnected); },
+};
+Net.prototype.onOpen = function(id)
+{
+    console.log('My peer ID is: ' + id);
+    this.m_peerID = id;
+};
+Net.prototype.onMessage = function(evt)
+{
+    this.m_lastrecv = evt.data;
+    console.log( "Received Message: " + this.m_lastrecv);
+};
+Net.prototype.setupConnection = function(conn)
+{
+    if(this.m_connection !== null)
+        throw "Connection already exists!";
+    this.m_connection = conn;
+    this.m_connection.on('data', this.onMessage);
+    this.m_connection.on('error', this.onError);
+};
+Net.prototype.onConnect = function(conn)
+{
+    console.log('Received connection');
+    
+    this.setupConnection(conn);
+};
+Net.prototype.onClose = function(evt)
+{
+    alert("Connection closed, peer destroyed.");
+};
+Net.prototype.onError = function(err)
+{
+    console.log(err);
+};
+Net.prototype.connect = function(destPeerID)
+{
+    setupConnection( peer.connect(destPeerID) );
+};
+Net.prototype.close = function()
+{
+    this.m_peer.destroy();
+    this.m_peer = null;
+    this.m_connection = null;
+};
+Net.prototype.send = function(dataObj)
+{
+    this.m_lastsent = dataObj;
+    this.m_connection.send(this.m_lastsent);
+    console.log("sent message: "+dataObj);
 };

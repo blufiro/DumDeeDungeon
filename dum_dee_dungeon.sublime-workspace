@@ -4,6 +4,22 @@
 		"selected_items":
 		[
 			[
+				"canvas2ga",
+				"canvas2gameX"
+			],
+			[
+				"data",
+				"dataObj"
+			],
+			[
+				"onErr",
+				"onErrorFunc"
+			],
+			[
+				"grd",
+				"gridOb"
+			],
+			[
 				"compon",
 				"component"
 			],
@@ -123,7 +139,7 @@
 			"file": "index.html",
 			"settings":
 			{
-				"buffer_size": 670,
+				"buffer_size": 811,
 				"line_ending": "Windows"
 			}
 		},
@@ -131,15 +147,24 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 3084,
+				"buffer_size": 4292,
 				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "main.css",
+			"settings":
+			{
+				"buffer_size": 344,
+				"line_ending": "Unix",
+				"name": "#canvas-wrap { position: relative; width: 100%; he"
 			}
 		},
 		{
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 17571,
+				"buffer_size": 25436,
 				"line_ending": "Windows"
 			}
 		},
@@ -207,6 +232,20 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"w",
+			"w\nw",
+			"w\nw\nw",
+			"w",
+			"length",
+			"lastrec",
+			"lastsent",
+			"stopWalk",
+			"stopWalk(false",
+			"stopWalk(true",
+			".y",
+			".x",
+			"this.compon",
+			"AIWalkerComp",
 			"[]",
 			"contain",
 			"conatins",
@@ -242,6 +281,9 @@
 		"regex": false,
 		"replace_history":
 		[
+			"stopWalk(",
+			".gy",
+			".gx",
 			"{}",
 			"this.debugStr",
 			"openPQ",
@@ -265,13 +307,13 @@
 		"reverse": false,
 		"show_context": true,
 		"use_buffer2": true,
-		"whole_word": false,
+		"whole_word": true,
 		"wrap": true
 	},
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -279,15 +321,15 @@
 					"file": "index.html",
 					"settings":
 					{
-						"buffer_size": 670,
+						"buffer_size": 811,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								59,
-								59
+								700,
+								700
 							]
 						],
 						"settings":
@@ -394,15 +436,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 3084,
+						"buffer_size": 4292,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2094,
-								2164
+								2179,
+								2179
 							]
 						],
 						"settings":
@@ -500,25 +542,141 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1685.0,
+						"translation.y": 1433.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 2,
-					"file": "util.js",
+					"file": "main.css",
 					"settings":
 					{
-						"buffer_size": 17571,
+						"buffer_size": 344,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								9100,
-								9100
+								207,
+								207
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"auto_name": "#canvas-wrap { position: relative; width: 100%; he",
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "none",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/CSS/CSS.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "util.js",
+					"settings":
+					{
+						"buffer_size": 25436,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								890,
+								903
 							]
 						],
 						"settings":
@@ -617,13 +775,13 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 4397.0,
+						"translation.y": 301.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 4,
 					"file": "resources.js",
 					"settings":
 					{
@@ -733,7 +891,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 18.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

@@ -1,12 +1,12 @@
 var canvas;
-var w;
-var h;
+var ui;
 var context;
 var onErrorFunc;
 
 var resources;
 var playerGob;
 var gridOb;
+var netOb;
 var intervalID;
 var showDebugInfo = true;
 
@@ -18,10 +18,8 @@ function main(onErrorFunc_)
 	{
 		loadScript("resources.js", onResourcesLoaded);
 
-		canvas = document.getElementsByTagName('canvas')[0];
-		w = canvas.width;
-		h = canvas.height;
-		console.log(w+" "+h);
+		canvas = document.getElementById('gameCanvas');
+		ui = document.getElementById("gameUI");
 		context = canvas.getContext("2d");
 
 		// input event listeners
@@ -49,12 +47,24 @@ function init()
 {
 	console.log("init()");
 
+	// these variables are in util
+	gameWidth = 480;
+	gameHeight = 320;
+	widthToHeight = gameWidth/ gameHeight;
+
 	bgGob = new GameObject();
 	bgGob.sprite = new ImageSprite( resources.images["bg"] );
-	gridOb = new Grid(w/32, h/32, w, h);
+	netOb = new Net('p2nl3kjvwpnwmi');
+	gridOb = new Grid(15, 10, gameWidth, gameHeight);
 	playerGob = new Player();
 	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
+
+	resizeGame();
+	window.addEventListener('resize', resizeGame, false);
+	window.addEventListener('orientationchange', resizeGame, false);
+
+	SwapScreen(CreateConnectScreen());
 }
 
 function mainloop()
@@ -63,7 +73,6 @@ function mainloop()
 	{
 		update();
 		draw();
-		drawDebugInfo();
 		Input.pointerUpdate();
 	}
 	catch(e)
@@ -80,13 +89,19 @@ function update()
 
 function draw()
 {
-	context.clearRect(0,0, w, h);
+	context.clearRect(0,0, canvasWidth, canvasHeight);
 
 	// context.fillStyle='#712033';
 	// context.fillRect(50,50,100,80);
+	context.save();
+	context.transform(canvasRatioX,0,0,canvasRatioY,0,0);
 
 	bgGob.draw(context);
 	playerGob.draw(context);
+
+	drawDebugInfo();
+
+	context.restore();
 }
 function drawDebugPath(path, strokeStyle_)
 {
@@ -110,18 +125,20 @@ function drawDebugInfo()
 {
 	if(showDebugInfo)
 	{
-		context.setTransform(1,0,0,1,0,0);
-		context.font="12px Monospace";
+		context.font="8px Monospace";
 		context.fillStyle="#000000";
 
 		drawDebugPath(playerGob.getComponent("AIWalkerComp").path, '#FF0000');
 
 		// fps
-		context.fillText(getFpsString(), 10, 20);
+		context.fillText(getFpsString(), 10, 10);
 
 		// mouse / touch pos
-		context.fillText("pointerXY["+Input.pointerX+","+Input.pointerY+"]", 10, 38);
-		context.fillText("input debug:"+Input.debugString, 10, 50);
+		var y = 20;
+		var dy = 10;
+		context.fillText("pointerXY["+Input.pointerX+","+Input.pointerY+"]", 10, y+=dy);
+		context.fillText("pointerCanvasXY["+Input.pointerCanvasX+","+Input.pointerCanvasY+"]", 10, y+=dy);
+		context.fillText("input debug:"+Input.debugString, 10, y+=dy);
 	}
 }
 
@@ -200,3 +217,35 @@ Player.prototype.update = function()
 // {
 // 	GameObject.prototype.draw.call(this);
 // }
+
+/*********************************
+* SCREENS
+*********************************/
+function SwapScreen(newScreen)
+{
+	if(ui.firstChild)
+		ui.removeChild(ui.firstChild);
+	ui.appendChild( newScreen );
+}
+
+function CreateConnectScreen()
+{
+	var newNode = document.createElement('div');
+    newNode.className = "containerCenterX";
+	/*jshint multistr: true */
+	newNode.innerHTML = '<div class="containerCenterY" \
+	<h1>Connect to Peer</h1> \
+	<div id="actions"> \
+    Your ID is <span id="pid"></span><br> \
+    Connect to a peer: <input type="text" id="rid" placeholder="Someone else\'s id"> \
+    <input class="button" type="button" value="Connect" id="connect"> \
+    <br> \
+    <br> \
+    <form id="send"> \
+      <input type="text" id="text" placeholder="Enter message"><input class="button" type="submit" value="Send to selected peers"> \
+    </form> \
+    <button id="close">Close selected connections</button> \
+    </div> \
+    </div>';
+  return newNode;
+}
