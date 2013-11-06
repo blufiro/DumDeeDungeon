@@ -54,7 +54,7 @@ function init()
 
 	bgGob = new GameObject();
 	bgGob.sprite = new ImageSprite( resources.images["bg"] );
-	netOb = new Net('p2nl3kjvwpnwmi');
+	netOb = new GameNet();
 	gridOb = new Grid(15, 10, gameWidth, gameHeight);
 	playerGob = new Player();
 	
@@ -221,31 +221,94 @@ Player.prototype.update = function()
 /*********************************
 * SCREENS
 *********************************/
+
+/*jshint multistr: true */
+
 function SwapScreen(newScreen)
 {
 	if(ui.firstChild)
 		ui.removeChild(ui.firstChild);
 	ui.appendChild( newScreen );
 }
+function CreateDialog(dialogID, headHTML, bodyHTML)
+{
+	var nodeX = document.createElement('div');
+	nodeX.id = dialogID;
+    nodeX.className = "containerCenterX";
+    
+    var nodeY = document.createElement('div');
+    nodeY.className = "containerCenterY";
+    nodeX.appendChild(nodeY);
+
+    var contentWrapper = document.createElement('div');
+    contentWrapper.className = "dialog";
+    nodeY.appendChild(contentWrapper);
+
+    var headlineNode = document.createElement('div');
+    headlineNode.className = "dialogHead";
+    headlineNode.innerHTML = headHTML;
+    contentWrapper.appendChild(headlineNode);
+
+    contentWrapper.appendChild(document.createElement('br'));
+
+    var bodyNode = document.createElement('div');
+    bodyNode.className = "dialogBody";
+    bodyNode.innerHTML = bodyHTML;
+    contentWrapper.appendChild(bodyNode);
+
+	return nodeX;
+}
 
 function CreateConnectScreen()
 {
-	var newNode = document.createElement('div');
-    newNode.className = "containerCenterX";
-	/*jshint multistr: true */
-	newNode.innerHTML = '<div class="containerCenterY" \
-	<h1>Connect to Peer</h1> \
-	<div id="actions"> \
-    Your ID is <span id="pid"></span><br> \
-    Connect to a peer: <input type="text" id="rid" placeholder="Someone else\'s id"> \
-    <input class="button" type="button" value="Connect" id="connect"> \
-    <br> \
-    <br> \
-    <form id="send"> \
-      <input type="text" id="text" placeholder="Enter message"><input class="button" type="submit" value="Send to selected peers"> \
-    </form> \
-    <button id="close">Close selected connections</button> \
-    </div> \
-    </div>';
-  return newNode;
+	var contentNode = CreateDialog("ConnectScreen",
+		 "Grab a peer to start",
+		' \
+			Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
+			Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+			<input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
+		'
+	);
+	return contentNode;
 }
+function onClickConnect()
+{
+	var otherPid = document.getElementById("rid").value;
+	netOb.connect(otherPid);
+}
+
+/*********************************
+* GAME NETWORKING
+*********************************/
+function GameNet()
+{
+	Net.call(this, 'p2nl3kjvwpnwmi');
+}
+// Inheritance
+GameNet.prototype = Object.create(Net.prototype);
+GameNet.prototype.onOpen = function(id)
+{
+	Net.prototype.onOpen.call(this, id);
+
+	var pidNode = document.getElementById("pid");
+	if(pidNode)
+	{
+		pidNode.value = this.pid;
+	}
+};
+GameNet.prototype.onConnect = function(conn)
+{
+	// remove connect screen
+	var connectScreen = document.getElementById("ConnectScreen");
+	if(connectScreen)
+	{
+		connectScreen.parentNode.removeChild(connectScreen);
+		// game sync and start
+	}
+};
+GameNet.prototype.onMessage = function()
+{
+	Net.prototype.onMessage.call(this);
+
+
+};

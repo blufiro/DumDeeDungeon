@@ -22,21 +22,46 @@ P.blocktext
     margin-right: auto;
     width: 90%;
 }
-IMG.displayed
+img.displayed
 {
     display: block;
     margin-left: auto;
     margin-right: auto ;
 }
-DIV.containerCenterX
+div.containerCenterX
 {
 	display: table;
 	margin: auto;
 	height: 100%;
 	text-align: center;
 }
-DIV.containerCenterY
+div.containerCenterY
 {
 	display: table-cell;
 	vertical-align: middle;
+}
+div.dialog
+{
+	padding: 15px;
+	background: rgba(63, 89 ,99, 0.8);
+	border-radius: 16px 16px 16px 16px;
+	border: 3px solid rgba(89,169,158, 0.8);
+}
+div.dialogHead
+{
+	font-family: "Verdana", sans-serif;
+	font-size: 30px;
+	font-weight: bold;
+	color: #00181f;
+}
+div.dialogBody
+{
+	text-align: left;
+	font-family: "Verdana", sans-serif;
+	font-size:18px;
+	color: #8be7e6;
+}
+#pid
+{
+	font-weight: bold;
 }

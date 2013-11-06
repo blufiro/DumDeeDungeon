@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>UI Tester</title>
+<link rel="stylesheet" type="text/css" href="main.css">
+</head>
+
+<body>
+<div id="gameUI"></div>
+
+<script>
+var ui = document.getElementById("gameUI");
+function SwapScreen(newScreen)
+{
+	if(ui.firstChild)
+		ui.removeChild(ui.firstChild);
+	ui.appendChild( newScreen );
+}
+function CreateDialog(headHTML, bodyHTML)
+{
+    var nodeX = document.createElement('div');
+    nodeX.className = "containerCenterX";
+    
+    var nodeY = document.createElement('div');
+    nodeY.className = "containerCenterY";
+    nodeX.appendChild(nodeY);
+
+    var contentWrapper = document.createElement('div');
+    contentWrapper.className = "dialog";
+    nodeY.appendChild(contentWrapper);
+
+    var headlineNode = document.createElement('div');
+    headlineNode.className = "dialogHead";
+    headlineNode.innerHTML = headHTML;
+    contentWrapper.appendChild(headlineNode);
+
+    contentWrapper.appendChild(document.createElement('br'));
+
+    var bodyNode = document.createElement('div');
+    bodyNode.className = "dialogBody";
+    bodyNode.innerHTML = bodyHTML;
+    contentWrapper.appendChild(bodyNode);
+
+    return nodeX;
+}
+
+function CreateConnectScreen()
+{
+    var contentNode = CreateDialog( "Grab a peer to start",
+        ' \
+            Your ID: <span id="pid">connecting...</span><br> \
+            Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+            <input class="button" type="button" value="Connect" id="connect"> \
+        '
+    );
+    return contentNode;
+}
+
+SwapScreen(CreateConnectScreen());
+
+</script>
+
+</body>
+
+</html>

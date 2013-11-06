@@ -799,10 +799,10 @@ var AStar = {
 function Net(key_)
 {
     this.m_peer = new Peer({key: key_});
-    this.m_peer.on('open', this.onOpen);
-    this.m_peer.on('connection', this.onConnect);
-    this.m_peer.on('close', this.onClose);
-    this.m_peer.on('error', this.onError);
+    this.m_peer.on('open', this.onOpen.bind(this));
+    this.m_peer.on('connection', this.onConnect.bind(this));
+    this.m_peer.on('close', this.onClose.bind(this));
+    this.m_peer.on('error', this.onError.bind(this));
 
     this.m_peerID = null;
     this.m_connection = null;
@@ -810,6 +810,7 @@ function Net(key_)
     this.m_lastrecv = null;
 }
 Net.prototype = {
+    get pid() { return this.m_peerID; },
     get isConnected() { return (this.m_peer && !this.m_peer.disconnected); },
 };
 Net.prototype.onOpen = function(id)
@@ -832,7 +833,7 @@ Net.prototype.setupConnection = function(conn)
 };
 Net.prototype.onConnect = function(conn)
 {
-    console.log('Received connection');
+    console.log('Received connection ', conn);
     
     this.setupConnection(conn);
 };
@@ -846,7 +847,8 @@ Net.prototype.onError = function(err)
 };
 Net.prototype.connect = function(destPeerID)
 {
-    setupConnection( peer.connect(destPeerID) );
+    var conn = this.m_peer.connect(destPeerID);
+    this.onConnect( conn );
 };
 Net.prototype.close = function()
 {
