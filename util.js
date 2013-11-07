@@ -73,17 +73,20 @@ function resizeGame()
 // The higher this value, the less the fps will reflect temporary variations
 // A value of 1 will only keep the last value
 var fpsFilterStrength = 3;
-var fpsFrameTime = 0, fpsLastLoop = new Date(), fpsThisLoop;
+var fpsFrameTime = 0, fpsLastLoop = now(), fpsThisLoop;
+var frameCounter = 0;
 
+function now() { return new Date(); }
 function fpsUpdate()
 {
-  var thisFrameTime = (fpsThisLoop=new Date()) - fpsLastLoop;
+  var thisFrameTime = (fpsThisLoop=now()) - fpsLastLoop;
   fpsFrameTime+= (thisFrameTime - fpsFrameTime) / fpsFilterStrength;
   fpsLastLoop = fpsThisLoop;
+  frameCounter++;
 }
 function getFpsString()
 {
-    return (1000/fpsFrameTime).toFixed(1) + " fps";
+    return (1000/fpsFrameTime).toFixed(1) + " fps f:"+frameCounter;
 }
 
 /*********************************
@@ -118,7 +121,7 @@ var Input = {
     keyPress : function (evt)
     {
         if (this.keys[evt.keyCode] > 0) { return; }
-        this.keys[evt.keyCode] = evt.timeStamp || (new Date()).getTime();
+        this.keys[evt.keyCode] = evt.timeStamp || now().getTime();
     },
     keyRelease : function (evt)
     {
@@ -520,6 +523,36 @@ AIWalkerComp.prototype.update = function()
     }
 };
 
+function NetComp(netOb, netID_, onRecvCallback)
+{
+    Component.call(this);
+
+    this.m_lastTimestamp = 0;
+    this.netID = netID_;
+    this.onRecvCb = onRecvCallback;
+
+    // register with Net
+    netOb.registerComp(this);
+}
+NetComp.prototype = Object.create( Component.prototype );
+
+NetComp.prototype.onRecv = function(data)
+{
+    if(!data.t)
+    {
+        console.log("data had no timestamp", data);
+        return false;
+    }
+
+    if (this.m_lastTimestamp <= data.t)
+    {
+        this.m_lastTimestamp = data.t;
+        this.onRecvCb(data);
+        return true;
+    }
+    return false;
+};
+
 /*********************************
 * GRID 
 *********************************/
@@ -796,7 +829,7 @@ var AStar = {
 * WEB SOCKETS NETWORKING
 * This uses WebRTC. Please include peer.min.js http://peerjs.com/
 *********************************/
-function Net(key_)
+function Net(key_, pingRateMS_)
 {
     this.m_peer = new Peer({key: key_});
     this.m_peer.on('open', this.onOpen.bind(this));
@@ -808,28 +841,31 @@ function Net(key_)
     this.m_connection = null;
     this.m_lastsent = null;
     this.m_lastrecv = null;
+
+    this.m_netComponents = {};
+
+    this.pingDelay = 999999;
+    this.pingRate = pingRateMS_;
+    this.pingLast = -9999;
 }
 Net.prototype = {
     get pid() { return this.m_peerID; },
-    get isConnected() { return (this.m_peer && !this.m_peer.disconnected); },
+    get otherPid() { return this.m_connection.peer; },
+    get isOnline() { return (this.m_peer && !this.m_peer.disconnected); },
+    get isConnected() { return (this.m_connection && this.m_connection.open); },
 };
 Net.prototype.onOpen = function(id)
 {
     console.log('My peer ID is: ' + id);
     this.m_peerID = id;
 };
-Net.prototype.onMessage = function(evt)
-{
-    this.m_lastrecv = evt.data;
-    console.log( "Received Message: " + this.m_lastrecv);
-};
 Net.prototype.setupConnection = function(conn)
 {
     if(this.m_connection !== null)
         throw "Connection already exists!";
     this.m_connection = conn;
-    this.m_connection.on('data', this.onMessage);
-    this.m_connection.on('error', this.onError);
+    this.m_connection.on('data', this.onMessage.bind(this));
+    this.m_connection.on('error', this.onError.bind(this));
 };
 Net.prototype.onConnect = function(conn)
 {
@@ -856,9 +892,63 @@ Net.prototype.close = function()
     this.m_peer = null;
     this.m_connection = null;
 };
-Net.prototype.send = function(dataObj)
+Net.prototype.registerComp = function(netComp)
 {
-    this.m_lastsent = dataObj;
+    if(!(netComp instanceof NetComp))
+        throw "Invalid NetComp"+netComp;
+    this.m_netComponents[netComp.netID] = netComp;
+};
+Net.prototype.send = function(netComp, dataObj)
+{
+    var toSend = dataObj;
+    // add timestamp
+    toSend.t = now().getTime();
+    // add netID
+    toSend.netID = netComp.netID;
+    
+    this.m_lastsent = toSend;
     this.m_connection.send(this.m_lastsent);
-    console.log("sent message: "+dataObj);
+
+    console.log("sent message: "+JSON.stringify(this.m_lastsent));
+};
+Net.prototype.onMessage = function(data)
+{
+    // ping pong
+    if(data.ping === 0)
+    {
+        data.ping = 1;
+        this.m_connection.send( data );
+        return;
+    }
+    else if(data.ping === 1)
+    {
+        this.pingDelay = ( now().getTime() - data.t ) / 2;
+        return;
+    }
+
+    // pings do not affect component code
+    this.m_lastrecv = data;
+    console.log( "Received Message: " + JSON.stringify(data));
+
+    var netComp = this.m_netComponents[data.netID];
+    if(netComp)
+    {
+        netComp.onRecv(data);
+    }
+};
+Net.prototype.ping = function()
+{
+    this.m_connection.send({ "ping":0, 't':now().getTime() });
+};
+Net.prototype.update = function()
+{
+    if(!this.isConnected)
+        return;
+
+    var t = now().getTime();
+    if( (t - this.pingLast) > this.pingRate )
+    {
+        this.pingLast = t;
+        this.ping();
+    }
 };

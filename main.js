@@ -4,7 +4,8 @@ var context;
 var onErrorFunc;
 
 var resources;
-var playerGob;
+var player1Gob;
+var player2Gob;
 var gridOb;
 var netOb;
 var intervalID;
@@ -34,7 +35,8 @@ function main(onErrorFunc_)
 function onResourcesLoaded()
 {
 	var imgs = {
-		"player" : "images/player.png",
+		"player1" : "images/player1.png",
+		"player2" : "images/player2.png",
 		"bg" : "images/bg.png",
 		"gradient" : "images/gradient.jpg"
 	};
@@ -56,7 +58,8 @@ function init()
 	bgGob.sprite = new ImageSprite( resources.images["bg"] );
 	netOb = new GameNet();
 	gridOb = new Grid(15, 10, gameWidth, gameHeight);
-	playerGob = new Player();
+	player1Gob = new Player(1);
+	player2Gob = new Player(2);
 	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
 
@@ -84,7 +87,9 @@ function mainloop()
 function update()
 {
 	fpsUpdate();
-	playerGob.update();
+	player1Gob.update();
+	player2Gob.update();
+	netOb.update();
 }
 
 function draw()
@@ -97,7 +102,8 @@ function draw()
 	context.transform(canvasRatioX,0,0,canvasRatioY,0,0);
 
 	bgGob.draw(context);
-	playerGob.draw(context);
+	player1Gob.draw(context);
+	player2Gob.draw(context);
 
 	drawDebugInfo();
 
@@ -128,7 +134,8 @@ function drawDebugInfo()
 		context.font="8px Monospace";
 		context.fillStyle="#000000";
 
-		drawDebugPath(playerGob.getComponent("AIWalkerComp").path, '#FF0000');
+		drawDebugPath(player1Gob.getComponent("AIWalkerComp").path, '#FF0000');
+		drawDebugPath(player2Gob.getComponent("AIWalkerComp").path, '#00FF00');
 
 		// fps
 		context.fillText(getFpsString(), 10, 10);
@@ -139,16 +146,20 @@ function drawDebugInfo()
 		context.fillText("pointerXY["+Input.pointerX+","+Input.pointerY+"]", 10, y+=dy);
 		context.fillText("pointerCanvasXY["+Input.pointerCanvasX+","+Input.pointerCanvasY+"]", 10, y+=dy);
 		context.fillText("input debug:"+Input.debugString, 10, y+=dy);
+		context.fillText("ping:"+netOb.pingDelay+"ms", 10, y+=dy);
 	}
 }
 
 /*********************************
 * PLAYER
 *********************************/
-function Player()
+function Player(playerID_)
 {
 	GameObject.call(this);
-	this.sprite = new ImageSprite( resources.images["player"] );
+
+	this.playerID = playerID_;
+
+	this.sprite = new ImageSprite( resources.images["player"+this.playerID] );
 
 	//this.vx = 1;
 
@@ -159,10 +170,25 @@ function Player()
 	this.targetGY = this.gy;
 	
 	this.addComponent( "AIWalkerComp", new AIWalkerComp(gridOb, 2) );
+	this.addComponent( "NetComp", new NetComp(netOb, "player"+this.playerID, this.onRecv.bind(this)) );
 }
 
 // Inheritance
 Player.prototype = Object.create(GameObject.prototype);
+
+Player.prototype.routeTo = function(newTargetGX, newTargetGY)
+{
+	this.targetGX = newTargetGX; this.targetGY = newTargetGY;
+	var aiwalkercomp = this.getComponent("AIWalkerComp");
+	var nextGX = this.gx;
+	var nextGY = this.gy;
+	if(aiwalkercomp.isWalking && aiwalkercomp.path.length > 1)
+	{
+		nextGX = gridOb.toGX(aiwalkercomp.destX);
+		nextGY = gridOb.toGY(aiwalkercomp.destY);
+	}
+	aiwalkercomp.path = AStar.search(nextGX, nextGY, this.targetGX, this.targetGY, gridOb);
+};
 
 // override
 Player.prototype.update = function()
@@ -191,6 +217,10 @@ Player.prototype.update = function()
 	// 	this.y += 5;
 	// }
 
+	// handle input only if same id as netOb
+	if(netOb.playerID !== this.playerID)
+		return;
+
 	if(Input.pointerIsDown)
 	{
 		var newTargetGX = gridOb.toGX(Input.pointerX);
@@ -200,35 +230,59 @@ Player.prototype.update = function()
 
 		if(newTargetGX !== this.targetGX || newTargetGY !== this.targetGY)
 		{
-			this.targetGX = newTargetGX; this.targetGY = newTargetGY;
-			var aiwalkercomp = this.getComponent("AIWalkerComp");
-			var nextGX = this.gx;
-			var nextGY = this.gy;
-			if(aiwalkercomp.isWalking && aiwalkercomp.path.length > 1)
+			this.routeTo(newTargetGX, newTargetGY);
+			
+			// send this over
+			var netComp = this.getComponent("NetComp");
+			if(netComp && netOb.isConnected)
 			{
-				nextGX = gridOb.toGX(aiwalkercomp.destX);
-				nextGY = gridOb.toGY(aiwalkercomp.destY);
+				netOb.send(netComp,
+					{
+						"cmd": "mv",
+						"tgx": this.targetGX,
+						"tgy": this.targetGY,
+					}
+				);
 			}
-			aiwalkercomp.path = AStar.search(nextGX, nextGY, this.targetGX, this.targetGY, gridOb);
 		}
 	}
 };
-// Player.prototype.draw = function()
-// {
-// 	GameObject.prototype.draw.call(this);
-// }
+Player.prototype.onRecv = function(data)
+{
+	switch(data.cmd)
+	{
+		case "mv":
+		{
+			if(data.tgx && data.tgy)
+			{
+				this.routeTo(data.tgx, data.tgy);
+			}
+			break;
+		}
+	}//end switch
+};
 
 /*********************************
 * SCREENS
 *********************************/
 
 /*jshint multistr: true */
-
-function SwapScreen(newScreen)
+function RemoveScreen()
 {
 	if(ui.firstChild)
+	{
 		ui.removeChild(ui.firstChild);
-	ui.appendChild( newScreen );
+		ui.style.pointerEvents = "none";
+	}
+}
+function SwapScreen(newScreen)
+{
+	RemoveScreen();
+	if (newScreen)
+	{
+		ui.appendChild( newScreen );
+		ui.style.pointerEvents = "auto";
+	}
 }
 function CreateDialog(dialogID, headHTML, bodyHTML)
 {
@@ -262,7 +316,7 @@ function CreateDialog(dialogID, headHTML, bodyHTML)
 function CreateConnectScreen()
 {
 	var contentNode = CreateDialog("ConnectScreen",
-		 "Grab a peer to start",
+		"Grab a peer to start",
 		' \
 			Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
 			Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
@@ -282,7 +336,8 @@ function onClickConnect()
 *********************************/
 function GameNet()
 {
-	Net.call(this, 'p2nl3kjvwpnwmi');
+	Net.call(this, 'p2nl3kjvwpnwmi', 500);
+	this.playerID = 0;
 }
 // Inheritance
 GameNet.prototype = Object.create(Net.prototype);
@@ -298,17 +353,25 @@ GameNet.prototype.onOpen = function(id)
 };
 GameNet.prototype.onConnect = function(conn)
 {
-	// remove connect screen
-	var connectScreen = document.getElementById("ConnectScreen");
-	if(connectScreen)
+	Net.prototype.onConnect.call(this, conn);
+
+	if(this.pid < this.otherPid)
 	{
-		connectScreen.parentNode.removeChild(connectScreen);
-		// game sync and start
+		this.playerID = 1;
 	}
+	else
+	{
+		this.playerID = 2;
+	}
+	console.log("This is player "+this.playerID);
+
+	// remove connect screen
+	RemoveScreen();
+	// game sync and start
 };
-GameNet.prototype.onMessage = function()
+GameNet.prototype.onMessage = function(evt)
 {
-	Net.prototype.onMessage.call(this);
+	Net.prototype.onMessage.call(this, evt);
 
 
 };
