@@ -207,7 +207,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 29359,
+				"buffer_size": 29447,
 				"line_ending": "Windows"
 			}
 		},
@@ -215,7 +215,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 8168,
+				"buffer_size": 8229,
 				"line_ending": "Windows"
 			}
 		}
@@ -277,6 +277,9 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"ping",
+			"error",
+			"close",
 			"this.pingLast",
 			"CreateConnectScreen",
 			"GameNet",
@@ -387,7 +390,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -395,15 +398,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 29359,
+						"buffer_size": 29447,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								28679,
-								28679
+								29021,
+								29021
 							]
 						],
 						"settings":
@@ -502,7 +505,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 14264.0,
+						"translation.y": 14570.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -512,15 +515,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 8168,
+						"buffer_size": 8229,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5320,
-								5320
+								3085,
+								3085
 							]
 						],
 						"settings":
@@ -618,7 +621,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 3452.0,
+						"translation.y": 1499.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

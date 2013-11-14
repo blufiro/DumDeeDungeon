@@ -147,6 +147,7 @@ function drawDebugInfo()
 		context.fillText("pointerCanvasXY["+Input.pointerCanvasX+","+Input.pointerCanvasY+"]", 10, y+=dy);
 		context.fillText("input debug:"+Input.debugString, 10, y+=dy);
 		context.fillText("ping:"+netOb.pingDelay+"ms", 10, y+=dy);
+		context.fillText("pingState:"+netOb.pingState, 10, y+=dy);
 	}
 }
 

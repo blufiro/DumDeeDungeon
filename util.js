@@ -999,11 +999,15 @@ Net.prototype.update = function()
     // check partner timeout
     if( dt > this.pingTimeout )
     {
+        this.pingDelay = dt;
         if(!this.isTimeout)
         {
             //timeout event
             this.isTimeout = true;
             this.onTimeout();
+
+            // try to ping again
+            this.ping();
         }
     }
     else if(this.isTimeout)
