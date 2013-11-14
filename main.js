@@ -253,7 +253,7 @@ Player.prototype.onRecv = function(data)
 	{
 		case "mv":
 		{
-			if(data.tgx && data.tgy)
+			if(data.tgx !== undefined && data.tgy !== undefined)
 			{
 				this.routeTo(data.tgx, data.tgy);
 			}
@@ -336,7 +336,7 @@ function onClickConnect()
 *********************************/
 function GameNet()
 {
-	Net.call(this, 'p2nl3kjvwpnwmi', 500);
+	Net.call(this, 'p2nl3kjvwpnwmi', 2000, 30000);
 	this.playerID = 0;
 }
 // Inheritance
@@ -375,3 +375,15 @@ GameNet.prototype.onMessage = function(evt)
 
 
 };
+// GameNet.prototype.onTimeout = function()
+// {
+
+// };
+// GameNet.prototype.onTimeoutRecover = function()
+// {
+
+// };
+// GameNet.prototype.onDisconnect = function()
+// {
+// 	//SwapScreen(CreateConnectScreen());
+// };

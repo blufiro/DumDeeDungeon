@@ -829,7 +829,7 @@ var AStar = {
 * WEB SOCKETS NETWORKING
 * This uses WebRTC. Please include peer.min.js http://peerjs.com/
 *********************************/
-function Net(key_, pingRateMS_)
+function Net(key_, pingTimeoutMS_, pingDisconnectMS_)
 {
     this.m_peer = new Peer({key: key_});
     this.m_peer.on('open', this.onOpen.bind(this));
@@ -842,17 +842,24 @@ function Net(key_, pingRateMS_)
     this.m_lastsent = null;
     this.m_lastrecv = null;
 
+    // Instances of NetComponents from game objects will be attached here
     this.m_netComponents = {};
 
     this.pingDelay = 999999;
-    this.pingRate = pingRateMS_;
-    this.pingLast = -9999;
+    this.pingTimeout = pingTimeoutMS_;
+    this.pingDisconnectDuration = pingDisconnectMS_;
+    this.pingLast = 0;
+    this.pingState = this.PING_STATE_READY;
 }
 Net.prototype = {
     get pid() { return this.m_peerID; },
     get otherPid() { return this.m_connection.peer; },
     get isOnline() { return (this.m_peer && !this.m_peer.disconnected); },
     get isConnected() { return (this.m_connection && this.m_connection.open); },
+
+    get PING_STATE_READY() { return 0; },
+    get PING_STATE_SENT() { return 1; },
+    get PING_STATE_WAIT() { return 2; },
 };
 Net.prototype.onOpen = function(id)
 {
@@ -866,6 +873,9 @@ Net.prototype.setupConnection = function(conn)
     this.m_connection = conn;
     this.m_connection.on('data', this.onMessage.bind(this));
     this.m_connection.on('error', this.onError.bind(this));
+
+    this.pingLast = now().getTime();
+    this.pingState = this.PING_STATE_READY;
 };
 Net.prototype.onConnect = function(conn)
 {
@@ -916,13 +926,19 @@ Net.prototype.onMessage = function(data)
     // ping pong
     if(data.ping === 0)
     {
+        // send back
         data.ping = 1;
         this.m_connection.send( data );
         return;
     }
     else if(data.ping === 1)
     {
-        this.pingDelay = ( now().getTime() - data.t ) / 2;
+        this.pingLast = now().getTime();
+        // recv after bounce from other
+        this.pingDelay = ( this.pingLast - data.t ) / 2;
+        // wait until threshold before ping again
+        // as we do not want to flood the network with pings
+        this.pingState = this.PING_STATE_WAIT;
         return;
     }
 
@@ -936,9 +952,26 @@ Net.prototype.onMessage = function(data)
         netComp.onRecv(data);
     }
 };
+Net.prototype.onTimeout = function()
+{
+    // to override
+    console.log("Net timed out!");
+};
+Net.prototype.onTimeoutRecover = function()
+{
+    // to override
+    console.log("Net recovered from timeout.");
+};
+Net.prototype.onDisconnect = function()
+{
+    // to override
+    console.log("Net disconnected!");
+};
 Net.prototype.ping = function()
 {
-    this.m_connection.send({ "ping":0, 't':now().getTime() });
+    this.pingLast = now().getTime();
+    this.m_connection.send({ "ping":0, 't':this.pingLast });
+    this.pingState = this.PING_STATE_SENT;
 };
 Net.prototype.update = function()
 {
@@ -946,9 +979,42 @@ Net.prototype.update = function()
         return;
 
     var t = now().getTime();
-    if( (t - this.pingLast) > this.pingRate )
+    var dt = t - this.pingLast;
+
+    // auto ping if ping state is ready
+    if(this.pingState == this.PING_STATE_READY)
     {
-        this.pingLast = t;
         this.ping();
+    }
+    else if(this.pingState == this.PING_STATE_WAIT)
+    {
+        // use timeout/4 as heuristic 
+        // since ping should take < half of timeout
+        if( dt > this.pingTimeout / 4)
+        {
+            this.ping();
+        }
+    }
+
+    // check partner timeout
+    if( dt > this.pingTimeout )
+    {
+        if(!this.isTimeout)
+        {
+            //timeout event
+            this.isTimeout = true;
+            this.onTimeout();
+        }
+    }
+    else if(this.isTimeout)
+    {
+        // timeout recover event
+        this.isTimeout = false;
+        this.onTimeoutRecover();
+    }
+
+    if( (dt > this.pingDisconnectDuration))
+    {
+        this.close();
     }
 };
