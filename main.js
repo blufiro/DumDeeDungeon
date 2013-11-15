@@ -4,6 +4,7 @@ var context;
 var onErrorFunc;
 
 var resources;
+var gobMan;
 var player1Gob;
 var player2Gob;
 var gridOb;
@@ -38,7 +39,8 @@ function onResourcesLoaded()
 		"player1" : "images/player1.png",
 		"player2" : "images/player2.png",
 		"bg" : "images/bg.png",
-		"gradient" : "images/gradient.jpg"
+		"gradient" : "images/gradient.jpg",
+		"item" : "images/item.png"
 	};
 
 	resources = new Resources();
@@ -54,12 +56,17 @@ function init()
 	gameHeight = 320;
 	widthToHeight = gameWidth/ gameHeight;
 
-	bgGob = new GameObject();
-	bgGob.sprite = new ImageSprite( resources.images["bg"] );
 	netOb = new GameNet();
 	gridOb = new Grid(15, 10, gameWidth, gameHeight);
-	player1Gob = new Player(1);
-	player2Gob = new Player(2);
+	
+	gobMan = new GameObjectManager();
+	
+	var bgGob = new GameObject();
+	bgGob.sprite = new ImageSprite( resources.images["bg"] );
+	gobMan.addGob("bgGob", bgGob);
+	
+	player1Gob = gobMan.addGob("player1Gob", new Player(1));
+	player2Gob = gobMan.addGob("player2Gob", new Player(2));
 	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
 
@@ -68,6 +75,35 @@ function init()
 	window.addEventListener('orientationchange', resizeGame, false);
 
 	SwapScreen(CreateConnectScreen());
+}
+
+function generateItems(prefix_)
+{
+	if(netOb.isServer)
+	{
+		var item;
+		var netComp = player1Gob.getComponent("NetComp");
+		for(var i=0; i<10; i++)
+		{
+			item = new Item( prefix_+i,
+				Math.floor(Math.random()*gridOb.nx),
+				Math.floor(Math.random()*gridOb.ny),
+				null);
+			
+			if(netComp && netOb.isConnected)
+			{
+				netOb.send(netComp,
+					{
+						"cmd": "ic", // item create
+						"iid": item.id,
+						"gx" : item.gx,
+						"gy" : item.gy,
+						"typ" : item.type,
+					}
+				);
+			}
+		}
+	}
 }
 
 function mainloop()
@@ -86,9 +122,9 @@ function mainloop()
 
 function update()
 {
+	cheatsUpdate();
 	fpsUpdate();
-	player1Gob.update();
-	player2Gob.update();
+	gobMan.update();
 	netOb.update();
 }
 
@@ -101,10 +137,8 @@ function draw()
 	context.save();
 	context.transform(canvasRatioX,0,0,canvasRatioY,0,0);
 
-	bgGob.draw(context);
-	player1Gob.draw(context);
-	player2Gob.draw(context);
-
+	gobMan.draw(context);
+	
 	drawDebugInfo();
 
 	context.restore();
@@ -151,6 +185,18 @@ function drawDebugInfo()
 	}
 }
 
+function cheatsUpdate()
+{
+	// force remove screen and set playerID
+	if(netOb.playerID === 0 && Input.keys[Keys.Q] && Input.keys[Keys.P])
+	{
+		RemoveScreen();
+		netOb.playerID = 1;
+		netOb.isServer = true;
+		generateItems("AAA");
+	}
+}
+
 /*********************************
 * PLAYER
 *********************************/
@@ -179,6 +225,7 @@ Player.prototype = Object.create(GameObject.prototype);
 
 Player.prototype.routeTo = function(newTargetGX, newTargetGY)
 {
+	console.log("p"+this.playerID, "routeTo", newTargetGX, newTargetGY);
 	this.targetGX = newTargetGX; this.targetGY = newTargetGY;
 	var aiwalkercomp = this.getComponent("AIWalkerComp");
 	var nextGX = this.gx;
@@ -189,6 +236,53 @@ Player.prototype.routeTo = function(newTargetGX, newTargetGY)
 		nextGY = gridOb.toGY(aiwalkercomp.destY);
 	}
 	aiwalkercomp.path = AStar.search(nextGX, nextGY, this.targetGX, this.targetGY, gridOb);
+};
+Player.prototype.pickUp = function(itemObj)
+{
+	var netComp;
+
+	// server gets to cheat
+	if(netOb.isServer)
+	{
+		if(itemObj.owner !== 0)
+			throw "Item already has an owner";
+		else
+		{
+			// take item
+			itemObj.taken(this.playerID);
+
+			netComp = this.getComponent("NetComp");
+			if(netComp && netOb.isConnected)
+			{
+				netOb.send(netComp,
+					{
+						"cmd": "it", // item taken
+						"iid": itemObj.id,
+						"gx" : itemObj.gx,
+						"gy" : itemObj.gy,
+						"typ" : itemObj.type,
+					}
+				);
+			}
+		}
+	}
+	else
+	{
+		// client has to ask server for permission
+		netComp = this.getComponent("NetComp");
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "ir", // item request
+					"iid": itemObj.id,
+					"gx" : itemObj.gx,
+					"gy" : itemObj.gy,
+					"typ" : itemObj.type,
+				}
+			);
+		}
+	}// end else netOb.isServer
 };
 
 // override
@@ -222,45 +316,142 @@ Player.prototype.update = function()
 	if(netOb.playerID !== this.playerID)
 		return;
 
-	if(Input.pointerIsDown)
+	var pointerGX = gridOb.toGX(Input.pointerX);
+	var pointerGY = gridOb.toGY(Input.pointerY);
+
+	if(Input.pointerIsReleased)
 	{
-		var newTargetGX = gridOb.toGX(Input.pointerX);
-		var newTargetGY = gridOb.toGY(Input.pointerY);
-
-		console.log("new target", newTargetGX, newTargetGY);
-
-		if(newTargetGX !== this.targetGX || newTargetGY !== this.targetGY)
+		// check for items
+		if(!gridOb.isEmpty(pointerGX, pointerGY))
 		{
-			this.routeTo(newTargetGX, newTargetGY);
-			
-			// send this over
-			var netComp = this.getComponent("NetComp");
-			if(netComp && netOb.isConnected)
+			var obj = gridOb[pointerGX][pointerGY];
+			if(obj instanceof Item &&
+				gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 1)
 			{
-				netOb.send(netComp,
-					{
-						"cmd": "mv",
-						"tgx": this.targetGX,
-						"tgy": this.targetGY,
-					}
-				);
+				// pick up item
+				this.pickUp(obj);
+				return;
 			}
 		}
 	}
+	if(Input.pointerIsDown)
+	{
+		console.log("clicked", pointerGX, pointerGY);
+		if(gridOb.isEmpty(pointerGX, pointerGY))
+		{
+			// walk
+			if(pointerGX !== this.targetGX || pointerGY !== this.targetGY)
+			{
+				this.routeTo(pointerGX, pointerGY);
+				
+				// send this over
+				var netComp = this.getComponent("NetComp");
+				if(netComp && netOb.isConnected)
+				{
+					netOb.send(netComp,
+						{
+							"cmd": "mv",
+							"tgx": this.targetGX,
+							"tgy": this.targetGY,
+						}
+					);
+				}
+			}
+		}//end if(gridOb.isEmpty(pointerGX, pointerGY))
+	}//end if(Input.pointerIsDown)
 };
 Player.prototype.onRecv = function(data)
 {
+	var item;
+
 	switch(data.cmd)
 	{
-		case "mv":
+		case "mv": // move
 		{
-			if(data.tgx !== undefined && data.tgy !== undefined)
-			{
-				this.routeTo(data.tgx, data.tgy);
-			}
-			break;
+			// params: data.tgx, data.tgy
+			this.routeTo(data.tgx, data.tgy);
 		}
+		break;
+		case "ic": // item create
+		{
+			// params: data.iid, data.gx, data.gy, data.typ
+			item = gobMan.getGob(data.iid);
+			if(!item)
+			{
+				// only create if not already existent
+				item = new Item(data.iid, data.gx, data.gy, data.typ);
+			}
+		}
+		break;
+		case "it": // item taken
+		{
+			// params: data.iid, data.gx, data.gy, data.typ
+			item = gobMan.getGob(data.iid);
+			if(!item)
+			{
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
+				// for now just fake it
+				item = new Item(data.iid, data.gx, data.gy, data.typ);
+			}
+
+			item.taken(this.playerID);
+		}
+		break;
+		case "ir": // item request
+		{
+			// params: data.iid, data.gx, data.gy, data.typ
+			item = gobMan.getGob(data.iid);
+			if(!item)
+			{
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
+				// for now just fake it
+				item = new Item(data.iid, data.gx, data.gy, data.typ);
+			}
+
+			// if there is no owner,
+			if(item.owner === 0)
+			{
+				// can be taken
+				this.pickUp(item);
+			}
+			else
+			{
+				// do not reply; it cannot be taken
+			}
+		}
+		break;
 	}//end switch
+};
+
+/*********************************
+* ITEM
+*********************************/
+function Item(id_, gx_, gy_, type_)
+{
+	GameObject.call(this);
+
+	this.sprite = new ImageSprite( resources.images["item"] );
+
+	this.id = id_;
+	this.gx = gx_;
+	this.gy = gy_;
+	this.type = type_;
+	this.owner = 0;
+
+	this.x = gridOb.toX(this.gx);
+	this.y = gridOb.toY(this.gy);
+	gridOb[this.gx][this.gy] = this;
+	gobMan.addGob( this.id, this);
+}
+
+Item.prototype = Object.create(GameObject.prototype);
+
+Item.prototype.taken = function(playerID_)
+{
+	this.owner = playerID_;
+	gridOb[this.gx][this.gy] = null;
+	// rm from gobMan
+	gobMan.removeGob(this.id);
 };
 
 /*********************************
@@ -350,6 +541,7 @@ function GameNet()
 {
 	Net.call(this, 'p2nl3kjvwpnwmi', 2000, 30000);
 	this.playerID = 0;
+	this.isServer = false;
 }
 // Inheritance
 GameNet.prototype = Object.create(Net.prototype);
@@ -370,17 +562,28 @@ GameNet.prototype.onConnect = function(conn)
 	if(this.pid < this.otherPid)
 	{
 		this.playerID = 1;
+		this.isServer = true;
 	}
 	else
 	{
 		this.playerID = 2;
+		this.isServer = false;
 	}
 	console.log("This is player "+this.playerID);
 
 	// remove connect screen
 	RemoveScreen();
-	// game sync and start
 };
+GameNet.prototype.onConnOpen = function()
+{
+	Net.prototype.onConnOpen.call(this);
+
+	// game sync and start
+	if(this.isServer)
+	{
+		generateItems("BBB");
+	}
+}
 GameNet.prototype.onMessage = function(evt)
 {
 	Net.prototype.onMessage.call(this, evt);

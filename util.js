@@ -382,6 +382,57 @@ GameObject.prototype.removeComponent = function(componentName)
 };
 
 /*********************************
+* GAME OBJECT MANAGER
+*********************************/
+function GameObjectManager()
+{
+    this.m_gobs = {};
+    this.m_gobsLen = 0;
+}
+GameObjectManager.prototype = {
+    get numGobs() { return this.m_gobsLen; },
+};
+GameObjectManager.prototype.addGob = function(gobName, newGob)
+{
+    if(! (newGob instanceof GameObject) )
+        throw "adding invalid game object";
+
+    this.m_gobs[gobName] = newGob;
+    this.m_gobsLen++;
+    
+    return newGob;
+};
+GameObjectManager.prototype.getGob = function(gobName)
+{
+    return this.m_gobs[ gobName ];
+};
+GameObjectManager.prototype.removeGob = function(gobName)
+{
+    var i = this.m_gobs[gobName];
+    if(i)
+    {
+        delete this.m_gobs[gobName];
+        this.m_gobsLen--;
+    }
+};
+GameObjectManager.prototype.update = function()
+{
+    // updated in the sequence they were added
+    for(var i in this.m_gobs)
+    {
+        this.m_gobs[i].update();
+    }
+};
+GameObjectManager.prototype.draw = function(ctx)
+{
+    // draw back to front
+    for(var i in this.m_gobs)
+    {
+        this.m_gobs[i].draw(ctx);
+    }
+};
+
+/*********************************
 * COMMON GAME COMPONENTS
 *********************************/
 function AIWalkerComp(gridOb, speed)
@@ -584,6 +635,10 @@ Grid.prototype.isEmpty = function(gx,gy)
             gy >= 0 && gy < this.m_ny &&
             this[gx][gy] === 0);
 };
+Grid.prototype.manhatDist = function(gx1, gy1, gx2, gy2)
+{
+    return Math.abs(gx1 - gx2) + Math.abs(gy1 - gy2);
+};
 Grid.prototype.toGX = function (x) { return Math.floor(x * this.m_nx / this.m_ww); };
 Grid.prototype.toGY = function (y) { return Math.floor(y * this.m_ny / this.m_wh); };
 Grid.prototype.toX = function (gx) { return gx * this.m_ww / this.m_nx; };
@@ -631,7 +686,7 @@ MinHeap.prototype.downHeapify = function(i, arrlen)
 MinHeap.prototype.push = function(node)
 {
     var len = this.array.push(node);
-    
+
     //  heapify upwards
     var i  = len-1;
     var parentId = this.parentIndex(i);
@@ -640,6 +695,7 @@ MinHeap.prototype.push = function(node)
     {
         this.swap(i, parentId);
         i = parentId;
+        parentId = this.parentIndex(i);
     }
 };
 MinHeap.prototype.pop = function()
@@ -662,6 +718,18 @@ MinHeap.prototype.pop = function()
 
         return returnNode;
     }
+};
+MinHeap.prototype.toString = function()
+{
+    var str = "[";
+    for(var i=0; i<this.array.length; i++)
+    {
+        if(i !== 0) str += ", ";
+        str += this.array[i].toString();
+    }
+    str += "]";
+
+    return str;
 };
 
 /*********************************
@@ -717,11 +785,20 @@ AStarNode.prototype.getNeighbours = function(grid)
     // if(grid.isEmpty(this.m_gx+1, this.m_gy+1))
     //     retArr.push( {gx: this.m_gx+1, gy: this.m_gy+1} );
 
+    // var str = "\t\tgetNeighbours:";
+    // for(var i=0; i <retArr.length;i++)
+    //     str += "["+retArr[i].gx+","+retArr[i].gy+"]";
+    // console.log(str);
+
     return retArr;
 };
 AStarNode.prototype.less = function(otherNode)
 {
     return this.fScore < otherNode.fScore;
+};
+AStarNode.prototype.toString = function()
+{
+    return "["+this.gx+","+this.gy,"-"+this.m_cameForm,"g:"+this.gScore.toFixed(2),"f:"+this.fScore.toFixed(2)+"]";
 };
 
 var AStar = {
@@ -731,7 +808,10 @@ var AStar = {
     },
     heuristicCostEstimate : function(goal, gx, gy)
     {
-        return Math.abs(goal.gx - gx) + Math.abs(goal.gy - gy);
+        // return Math.abs(goal.gx - gx) + Math.abs(goal.gy - gy);
+        var dx = goal.gx - gx;
+        var dy = goal.gy - gy;
+        return Math.sqrt(dx*dx+dy*dy);
     },
     // returns an array of came from AStarNodes
     reconstructPath : function(node)
@@ -748,6 +828,13 @@ var AStar = {
     // search with nodes
     search : function(startGX, startGY, goalGX, goalGY, grid)
     {
+        // console.log("");
+        // console.log("search:", startGX, startGY, goalGX, goalGY);
+
+        // simple check to see if the goal is reachable
+        if(!grid.isEmpty(goalGX,goalGY))
+            return null;
+
         var openPQ = new MinHeap();
         var openSet = {};
         var closedSet = {};
@@ -764,6 +851,7 @@ var AStar = {
         var tempNode;
         while( !openPQ.isEmpty()  )
         {
+            // console.log("\topenPQ",openPQ.toString());
             // remove from open set
             curr = openPQ.pop();
             delete openSet[curr.gx][curr.gy];
@@ -775,6 +863,8 @@ var AStar = {
                 closedSet[curr.gx] = {};
             closedSet[curr.gx][curr.gy] = curr;
 
+            // console.log("curr",curr.gx, curr.gy);
+
             // check neighbours
             neighbours = curr.getNeighbours(grid);
             for(var i=neighbours.length-1; i >= 0; i--)
@@ -783,6 +873,7 @@ var AStar = {
                 tempNode = null;
                 var tentativeGScore = curr.gScore + this.distBetween(curr, n.gx, n.gy);
                 var tentativeFScore = tentativeGScore + this.heuristicCostEstimate(goal, n.gx, n.gy);
+                // console.log("\tn",n.gx, n.gy, "tg:",tentativeGScore, "tf:",tentativeFScore);
                 if(closedSet[n.gx] !== undefined && closedSet[n.gx][n.gy] !== undefined)
                 {
                     if(tentativeFScore >= closedSet[n.gx][n.gy].fScore)
@@ -871,6 +962,7 @@ Net.prototype.setupConnection = function(conn)
     if(this.m_connection !== null)
         throw "Connection already exists!";
     this.m_connection = conn;
+    this.m_connection.on('open', this.onConnOpen.bind(this));
     this.m_connection.on('data', this.onMessage.bind(this));
     this.m_connection.on('close', this.onDisconnect.bind(this));
     this.m_connection.on('error', this.onError.bind(this));
@@ -932,7 +1024,7 @@ Net.prototype.onMessage = function(data)
             // send back
             data.ping ++;
             this.m_connection.send( data );
-            console.log("pong");
+            // console.log("pong");
             return;
         }
         else //if( (data.ping & 0x1) === 1)
@@ -944,7 +1036,7 @@ Net.prototype.onMessage = function(data)
             // as we do not want to flood the network with pings
             this.pingState = this.PING_STATE_WAIT;
             data.ping++;
-            console.log("pang");
+            // console.log("pang");
             if(data.ping > 2)
                 console.log("warning: double ping recv "+data.ping);
             return;
@@ -970,6 +1062,10 @@ Net.prototype.onTimeoutRecover = function()
 {
     // to override
     console.log("Net recovered from timeout.");
+};
+Net.prototype.onConnOpen = function()
+{
+    console.log("Net connection opened");
 };
 Net.prototype.onDisconnect = function()
 {
