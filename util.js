@@ -872,6 +872,7 @@ Net.prototype.setupConnection = function(conn)
         throw "Connection already exists!";
     this.m_connection = conn;
     this.m_connection.on('data', this.onMessage.bind(this));
+    this.m_connection.on('close', this.onDisconnect.bind(this));
     this.m_connection.on('error', this.onError.bind(this));
 
     this.pingLast = now().getTime();
@@ -885,7 +886,7 @@ Net.prototype.onConnect = function(conn)
 };
 Net.prototype.onClose = function(evt)
 {
-    alert("Connection closed, peer destroyed.");
+    console.log("Connection closed, peer destroyed.");
 };
 Net.prototype.onError = function(err)
 {
@@ -924,22 +925,30 @@ Net.prototype.send = function(netComp, dataObj)
 Net.prototype.onMessage = function(data)
 {
     // ping pong
-    if(data.ping === 0)
+    if(data.ping !== undefined)
     {
-        // send back
-        data.ping = 1;
-        this.m_connection.send( data );
-        return;
-    }
-    else if(data.ping === 1)
-    {
-        this.pingLast = now().getTime();
-        // recv after bounce from other
-        this.pingDelay = ( this.pingLast - data.t ) / 2;
-        // wait until threshold before ping again
-        // as we do not want to flood the network with pings
-        this.pingState = this.PING_STATE_WAIT;
-        return;
+        if( (data.ping & 0x1) === 0)
+        {
+            // send back
+            data.ping ++;
+            this.m_connection.send( data );
+            console.log("pong");
+            return;
+        }
+        else //if( (data.ping & 0x1) === 1)
+        {
+            this.pingLast = now().getTime();
+            // recv after bounce from other
+            this.pingDelay = ( this.pingLast - data.t ) / 2;
+            // wait until threshold before ping again
+            // as we do not want to flood the network with pings
+            this.pingState = this.PING_STATE_WAIT;
+            data.ping++;
+            console.log("pang");
+            if(data.ping > 2)
+                console.log("warning: double ping recv "+data.ping);
+            return;
+        }
     }
 
     // pings do not affect component code
@@ -966,10 +975,16 @@ Net.prototype.onDisconnect = function()
 {
     // to override
     console.log("Net disconnected!");
+
+    this.close();
 };
-Net.prototype.ping = function()
+Net.prototype.ping = function(bSetLast)
 {
-    this.pingLast = now().getTime();
+    if(bSetLast)
+    {
+        var t = now().getTime();
+        this.pingLast = t;
+    }
     this.m_connection.send({ "ping":0, 't':this.pingLast });
     this.pingState = this.PING_STATE_SENT;
 };
@@ -984,7 +999,7 @@ Net.prototype.update = function()
     // auto ping if ping state is ready
     if(this.pingState == this.PING_STATE_READY)
     {
-        this.ping();
+        this.ping(true);
     }
     else if(this.pingState == this.PING_STATE_WAIT)
     {
@@ -992,7 +1007,7 @@ Net.prototype.update = function()
         // since ping should take < half of timeout
         if( dt > this.pingTimeout / 4)
         {
-            this.ping();
+            this.ping(true);
         }
     }
 
@@ -1002,16 +1017,18 @@ Net.prototype.update = function()
         this.pingDelay = dt;
         if(!this.isTimeout)
         {
+            console.log("timeout", dt, this.pingTimeout);
             //timeout event
             this.isTimeout = true;
             this.onTimeout();
 
             // try to ping again
-            this.ping();
+            this.ping(false);
         }
     }
     else if(this.isTimeout)
     {
+        console.log("timeout recover dt:",dt, this.pingTimeout, this.pingState);
         // timeout recover event
         this.isTimeout = false;
         this.onTimeoutRecover();

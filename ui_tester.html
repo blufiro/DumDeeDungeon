@@ -7,19 +7,32 @@
 </head>
 
 <body>
-<div id="gameUI"></div>
+<div id="gameUI">Loading...</div>
 
 <script>
 var ui = document.getElementById("gameUI");
+console.log("hello");
+function RemoveScreen()
+{
+    if(ui.firstChild)
+    {
+        ui.removeChild(ui.firstChild);
+        ui.style.pointerEvents = "none";
+    }
+}
 function SwapScreen(newScreen)
 {
-	if(ui.firstChild)
-		ui.removeChild(ui.firstChild);
-	ui.appendChild( newScreen );
+    RemoveScreen();
+    if (newScreen)
+    {
+        ui.appendChild( newScreen );
+        ui.style.pointerEvents = "auto";
+    }
 }
-function CreateDialog(headHTML, bodyHTML)
+function CreateDialog(dialogID, headHTML, bodyHTML)
 {
     var nodeX = document.createElement('div');
+    nodeX.id = dialogID;
     nodeX.className = "containerCenterX";
     
     var nodeY = document.createElement('div');
@@ -47,17 +60,29 @@ function CreateDialog(headHTML, bodyHTML)
 
 function CreateConnectScreen()
 {
-    var contentNode = CreateDialog( "Grab a peer to start",
+    var contentNode = CreateDialog("ConnectScreen",
+        "Grab a peer to start",
         ' \
-            Your ID: <span id="pid">connecting...</span><br> \
-            Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
-            <input class="button" type="button" value="Connect" id="connect"> \
+Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
+Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+<input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
+        '
+    );
+    return contentNode;
+}
+function CreateDisconnectedScreen()
+{
+    var contentNode = CreateDialog( "DisconnectedScreen",
+        "Lost Connection",
+        ' \
+You may be facing network difficulties.<br> \
+Please reload. \
         '
     );
     return contentNode;
 }
 
-SwapScreen(CreateConnectScreen());
+SwapScreen(CreateDisconnectedScreen());
 
 </script>
 

@@ -319,12 +319,23 @@ function CreateConnectScreen()
 	var contentNode = CreateDialog("ConnectScreen",
 		"Grab a peer to start",
 		' \
-			Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
-			Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
-			<input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
+Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
+Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+<input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
 		'
 	);
 	return contentNode;
+}
+function CreateDisconnectedScreen()
+{
+    var contentNode = CreateDialog( "DisconnectedScreen",
+        "Lost Connection",
+        ' \
+You may be facing network difficulties.<br> \
+Please reload. \
+        '
+    );
+    return contentNode;
 }
 function onClickConnect()
 {
@@ -384,7 +395,8 @@ GameNet.prototype.onMessage = function(evt)
 // {
 
 // };
-// GameNet.prototype.onDisconnect = function()
-// {
-// 	//SwapScreen(CreateConnectScreen());
-// };
+GameNet.prototype.onDisconnect = function()
+{
+	Net.prototype.onDisconnect.call(this);
+	SwapScreen(CreateDisconnectedScreen());
+};
