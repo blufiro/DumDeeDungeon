@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"item_",
+				"item_treasure3"
+			],
+			[
+				"treasu",
+				"treasuresCountObj"
+			],
+			[
+				"Create",
+				"CreateItemTreasure"
+			],
+			[
+				"treas",
+				"treasuresCountObj"
+			],
+			[
+				"tre",
+				"treasuresCountObj"
+			],
+			[
 				"player1",
 				"player1Gob"
 			],
@@ -243,7 +263,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 32558,
+				"buffer_size": 34456,
 				"line_ending": "Windows"
 			}
 		},
@@ -251,7 +271,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 12631,
+				"buffer_size": 15581,
 				"line_ending": "Windows"
 			}
 		},
@@ -330,6 +350,37 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"netComp",
+			"Item",
+			"CreateItemTreasure",
+			"numHoles",
+			"generateMap",
+			"treasure",
+			"Item(",
+			"Treasure",
+			"hole",
+			"dig",
+			"digspo",
+			"generateMap",
+			"gobMan",
+			"owner",
+			"playerID",
+			"Item",
+			"Treasure",
+			"DigSpot",
+			"item",
+			"Item",
+			"generateMap",
+			"generateItems",
+			"Item",
+			"isWalkable",
+			"Grid",
+			"[gx][gy",
+			"isCellWalkable",
+			"isWalkable",
+			"isEmpty",
+			"isGXYEqual",
+			"isCellEqual",
 			"Pointer",
 			"GameObjectMana",
 			"netOb",
@@ -426,9 +477,7 @@
 			"this.",
 			"consol",
 			"=",
-			";",
-			"this.",
-			"Preloader"
+			";"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -436,6 +485,13 @@
 		"regex": false,
 		"replace_history":
 		[
+			"digspot",
+			"generateMap",
+			"Treasure",
+			"isCellWalkable",
+			"isCellEmpty",
+			"isWalkable",
+			"isGXYEqual",
 			"pointerGY",
 			"pointerGX",
 			"data",
@@ -471,7 +527,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -479,15 +535,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 32558,
+						"buffer_size": 34456,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3993,
-								4010
+								19028,
+								19039
 							]
 						],
 						"settings":
@@ -586,7 +642,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1771.0,
+						"translation.y": 10138.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -596,15 +652,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 12631,
+						"buffer_size": 15581,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								6873,
-								6873
+								11951,
+								11951
 							]
 						],
 						"settings":
@@ -702,7 +758,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 4567.0,
+						"translation.y": 8181.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -819,7 +875,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 554.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

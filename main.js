@@ -11,6 +11,8 @@ var gridOb;
 var netOb;
 var intervalID;
 var showDebugInfo = true;
+var numHoles = 10;
+var maxTreasureSize = 3;
 
 function main(onErrorFunc_)
 {
@@ -40,7 +42,10 @@ function onResourcesLoaded()
 		"player2" : "images/player2.png",
 		"bg" : "images/bg.png",
 		"gradient" : "images/gradient.jpg",
-		"item" : "images/item.png"
+		"item_treasure1" : "images/item_treasure1.png",
+		"item_treasure2" : "images/item_treasure2.png",
+		"item_treasure3" : "images/item_treasure3.png",
+		"item_hole" : "images/hole.png",
 	};
 
 	resources = new Resources();
@@ -77,18 +82,74 @@ function init()
 	SwapScreen(CreateConnectScreen());
 }
 
-function generateItems(prefix_)
+function generateMap()
 {
 	if(netOb.isServer)
 	{
 		var item;
 		var netComp = player1Gob.getComponent("NetComp");
-		for(var i=0; i<10; i++)
+		var gx;
+		var gy;
+		var holeCount;
+		var treasuresCountObj = {};
+		var i;
+		var x;
+		var y;
+
+		// spawn holes
+		for(i=0; i<numHoles; i++)
 		{
-			item = new Item( prefix_+i,
-				Math.floor(Math.random()*gridOb.nx),
-				Math.floor(Math.random()*gridOb.ny),
-				null);
+			gx = Math.floor(Math.random()*gridOb.nx);
+			gy = Math.floor(Math.random()*gridOb.ny);
+
+			// check if already spawned something
+			if(!gridOb.isCellEmpty(gx, gy))
+			{
+				i--;
+				continue;
+			}
+
+			// check if too near other holes
+			holeCount = 0;
+			for(x=gx-1; x<=gx+1; x++)
+			{
+				for(y=gy-1; y<=gy+1; y++)
+				{
+					// only count if is within bounds
+					if(gridOb.isWithinBounds(x,y) && !gridOb.isCellEmpty(x,y))
+						holeCount++;
+				}
+			}
+			if(holeCount >= maxTreasureSize)
+				continue;
+
+			// if conditions are satisfied, spawn hole item
+			item = CreateItemHole( "hole"+i, gx, gy, "hole");
+			
+			// add counts to treasures
+			for(x=gx-1; x<=gx+1; x++)
+			{
+				for(y=gy-1; y<=gy+1; y++)
+				{
+					// avoid adding count to hole cell
+					if(x==gx && y==gy)
+						continue;
+
+					// avoid adding to other hole cells, including out of bounds
+					if(!gridOb.isCellEmpty(x,y))
+						continue;
+
+					if(treasuresCountObj[x] === undefined)
+						treasuresCountObj[x] = {};
+
+					if(treasuresCountObj[x][y] === undefined)
+						treasuresCountObj[x][y] = 1;
+					else
+						treasuresCountObj[x][y]++;
+				}
+			}
+			// also set this cell count to 0 in case it had a count before placement
+			treasuresCountObj[gx][gy] = 0;
 			
 			if(netComp && netOb.isConnected)
 			{
@@ -101,6 +162,35 @@ function generateItems(prefix_)
 						"typ" : item.type,
 					}
 				);
+			}
+		}//end spawn holes
+
+		// spawn treasures around holes
+		i=0;
+		for(x in treasuresCountObj)
+		{
+			for(y in treasuresCountObj[x])
+			{
+				var count = treasuresCountObj[x][y];
+
+				if(count === 0)
+					continue;
+
+				item = CreateItemTreasure( "tres"+i, x, y, count);
+				i++;
+
+				if(netComp && netOb.isConnected)
+				{
+					netOb.send(netComp,
+						{
+							"cmd": "ic", // item create
+							"iid": item.id,
+							"gx" : item.gx,
+							"gy" : item.gy,
+							"typ" : item.type,
+						}
+					);
+				}
 			}
 		}
 	}
@@ -193,7 +283,7 @@ function cheatsUpdate()
 		RemoveScreen();
 		netOb.playerID = 1;
 		netOb.isServer = true;
-		generateItems("AAA");
+		generateMap();
 	}
 }
 
@@ -322,22 +412,30 @@ Player.prototype.update = function()
 	if(Input.pointerIsReleased)
 	{
 		// check for items
-		if(!gridOb.isEmpty(pointerGX, pointerGY))
+		if(!gridOb.isCellEmpty(pointerGX, pointerGY))
 		{
-			var obj = gridOb[pointerGX][pointerGY];
-			if(obj instanceof Item &&
-				gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 1)
+			var cellObj = gridOb.getCell(pointerGX, pointerGY);
+			while(cellObj !== null )
 			{
-				// pick up item
-				this.pickUp(obj);
-				return;
-			}
-		}
+				if(cellObj instanceof Item &&
+					cellObj.isPickable &&
+					// 0 distance means player must be on cell before
+					// item can be picked up
+					gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 0)
+				{
+					// pick up item
+					this.pickUp(cellObj);
+					return;
+				}
+
+				cellObj = cellObj.next;
+			}//end while cellObj !== null
+		}//end if cell empty
 	}
 	if(Input.pointerIsDown)
 	{
 		console.log("clicked", pointerGX, pointerGY);
-		if(gridOb.isEmpty(pointerGX, pointerGY))
+		if(gridOb.isCellWalkable(pointerGX, pointerGY))
 		{
 			// walk
 			if(pointerGX !== this.targetGX || pointerGY !== this.targetGY)
@@ -425,34 +523,67 @@ Player.prototype.onRecv = function(data)
 
 /*********************************
 * ITEM
+* is a gob that is designed to be synced through network
+* player recvs codes and corresponding actions will be performed on client
+* "ic" : creates item
+* "it" : take item
+* "ir" : request to take item
 *********************************/
 function Item(id_, gx_, gy_, type_)
 {
 	GameObject.call(this);
 
-	this.sprite = new ImageSprite( resources.images["item"] );
+	this.sprite = new ImageSprite( resources.images["item_"+type_] );
 
 	this.id = id_;
 	this.gx = gx_;
 	this.gy = gy_;
 	this.type = type_;
-	this.owner = 0;
+	this.owner = 0; // no one
+	this.isPickable = true;
 
 	this.x = gridOb.toX(this.gx);
 	this.y = gridOb.toY(this.gy);
-	gridOb[this.gx][this.gy] = this;
+	gridOb.addToCell(this.gx, this.gy, this);
 	gobMan.addGob( this.id, this);
+
+	// set remove as default action
+	this.onTaken = this.remove;
 }
 
 Item.prototype = Object.create(GameObject.prototype);
 
-Item.prototype.taken = function(playerID_)
+Item.prototype.remove = function()
 {
-	this.owner = playerID_;
-	gridOb[this.gx][this.gy] = null;
+	gridOb.removeFromCell(this.gx, this.gy, this);
 	// rm from gobMan
 	gobMan.removeGob(this.id);
 };
+Item.prototype.taken = function(playerID_)
+{
+	this.owner = playerID_;
+	
+	this.onTaken();
+};
+
+function CreateItemHole(id_, gx_, gy_)
+{
+	var item = new Item(id_, gx_, gy_, "hole");
+	item.isPickable = false;
+	item.onTaken = function()
+	{
+		var playerGob = gobMan.getGob( "player"+this.owner+"Gob" );
+		playerGob.fall(gx_,gy_);
+	};
+
+	return item;
+}
+function CreateItemTreasure(id_, gx_, gy_, size_)
+{
+	var item = new Item(id_, gx_, gy_, "treasure"+size_);
+
+	return item;
+}
 
 /*********************************
 * SCREENS
@@ -581,9 +712,9 @@ GameNet.prototype.onConnOpen = function()
 	// game sync and start
 	if(this.isServer)
 	{
-		generateItems("BBB");
+		generateMap();
 	}
-}
+};
 GameNet.prototype.onMessage = function(evt)
 {
 	Net.prototype.onMessage.call(this, evt);

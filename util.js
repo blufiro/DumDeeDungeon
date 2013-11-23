@@ -288,6 +288,8 @@ function GameObject()
     this.m_speed = 0;
     this.m_angle = 0;
 
+    this.m_isWalkable = true;
+
     this.m_components  = {};
 }
 
@@ -312,6 +314,9 @@ GameObject.prototype = {
     set angleDeg(value) { this.m_angle = value * (Math.PI / 180); this.refreshVelocity(); },
     get angleRad() { return this.m_angle; },
     set angleRad(value) { this.m_angle = value; this.refreshVelocity(); },
+
+    get isWalkable() { return this.m_isWalkable; },
+    set isWalkable(value) { this.m_isWalkable = value; },
 };
 
 GameObject.prototype.vxy = function(vx_ , vy_)
@@ -535,7 +540,7 @@ AIWalkerComp.prototype.update = function()
                 if(this.path !== null)
                 {
                     while(this.path.length > 0 &&
-                        !this.grid.isCellEqual(this.path[0].gx, this.path[0].gy, this.gameObject.gx, this.gameObject.gy))
+                        !this.grid.isGXYEqual(this.path[0].gx, this.path[0].gy, this.gameObject.gx, this.gameObject.gy))
                         this.path.shift();
                 }
 
@@ -614,12 +619,13 @@ function Grid(numCellsX, numCellsY, worldWidth, worldHeight)
     this.m_ww = worldWidth;
     this.m_wh = worldHeight;
 
+    this.m_cells = {};
     for(var gx = 0; gx < this.m_nx; gx++)
     {
-        this[gx] = [];
+        this.m_cells[gx] = [];
         for(var gy = 0; gy < this.m_ny; gy++)
         {
-            this[gx][gy] = 0;
+            this.m_cells[gx][gy] = null;
         }
     }
 }
@@ -628,12 +634,84 @@ Grid.prototype = {
     get nx () { return this.m_nx; },
     get ny () { return this.m_ny; },
 };
+Grid.prototype.getCell = function(gx, gy)
+{
+    return this.m_cells[gx][gy];
+};
+Grid.prototype.addToCell = function(gx, gy, obj)
+{
+    if(!this.isWithinBounds(gx,gy))
+        throw "Adding to out of bounds! ["+gx+","+gy+"]";
 
-Grid.prototype.isEmpty = function(gx,gy)
+    // linked list of objects
+    obj.next = null;
+    // if adding to head
+    if(this.m_cells[gx][gy] === null)
+    {
+        this.m_cells[gx][gy] = obj;
+    }
+    else
+    {
+        // adding to tail
+        var otherObj = this.m_cells[gx][gy];
+        var otherNext = otherObj.next;
+        while(otherNext !== null)
+        {
+            otherObj = otherNext;
+            otherNext = otherNext.next;
+        }
+
+        otherObj.next = obj;
+    }
+};
+Grid.prototype.removeFromCell = function(gx, gy, obj)
+{
+    if(!this.isWithinBounds(gx,gy) || this.m_cells[gx][gy] === null)
+        return;
+
+    // if remove head
+    if(this.m_cells[gx][gy] === obj)
+    {
+        this.m_cells[gx][gy] = obj.next;
+        return;
+    }
+
+    // if remove body
+    var prevObj = this.m_cells[gx][gy];
+    var otherObj = prevObj.next;
+    while(prevObj !== null)
+    {
+        if(otherObj === obj)
+        {
+            prevObj.next = obj.next;
+            return;
+        }
+        prevObj = prevObj.next;
+        otherObj = prevObj.next;
+    }
+};
+Grid.prototype.isWithinBounds = function(gx, gy)
 {
     return (gx >= 0 && gx < this.m_nx &&
-            gy >= 0 && gy < this.m_ny &&
-            this[gx][gy] === 0);
+            gy >= 0 && gy < this.m_ny);
+};
+Grid.prototype.isCellEmpty = function(gx,gy)
+{
+    return (this.isWithinBounds(gx,gy) && this.m_cells[gx][gy] === null);
+};
+Grid.prototype.isCellWalkable = function(gx, gy)
+{
+    if (!this.isWithinBounds(gx,gy))
+        return false;
+    
+    var gcObj = this.m_cells[gx][gy];
+    while(gcObj !== null)
+    {
+        if(!gcObj.isWalkable)
+            return false;
+        gcObj = gcObj.next;
+    }
+    return true;
 };
 Grid.prototype.manhatDist = function(gx1, gy1, gx2, gy2)
 {
@@ -643,7 +721,8 @@ Grid.prototype.toGX = function (x) { return Math.floor(x * this.m_nx / this.m_ww
 Grid.prototype.toGY = function (y) { return Math.floor(y * this.m_ny / this.m_wh); };
 Grid.prototype.toX = function (gx) { return gx * this.m_ww / this.m_nx; };
 Grid.prototype.toY = function (gy) { return gy * this.m_wh / this.m_ny; };
-Grid.prototype.isCellEqual = function(gx1, gy1, gx2, gy2) { return gx1 === gx2 && gy1 === gy2; };
+Grid.prototype.isGXYEqual = function(gx1, gy1, gx2, gy2) { return gx1 === gx2 && gy1 === gy2; };
+
 
 /*********************************
 * MinHeap
@@ -759,30 +838,30 @@ AStarNode.prototype.getNeighbours = function(grid)
     var retArr = [];
 
     // top
-    // if(grid.isEmpty(this.m_gx-1, this.m_gy-1))
+    // if(grid.isCellWalkable(this.m_gx-1, this.m_gy-1))
     //     retArr.push( {gx: this.m_gx-1, gy: this.m_gy-1} );
 
-    if(grid.isEmpty(this.m_gx, this.m_gy-1))
+    if(grid.isCellWalkable(this.m_gx, this.m_gy-1))
         retArr.push( {gx: this.m_gx, gy: this.m_gy-1} );
 
-    // if(grid.isEmpty(this.m_gx+1, this.m_gy-1))
+    // if(grid.isCellWalkable(this.m_gx+1, this.m_gy-1))
     //     retArr.push( {gx: this.m_gx+1, gy: this.m_gy-1} );
 
     // mid
-    if(grid.isEmpty(this.m_gx-1, this.m_gy))
+    if(grid.isCellWalkable(this.m_gx-1, this.m_gy))
         retArr.push( {gx: this.m_gx-1, gy: this.m_gy} );
 
-    if(grid.isEmpty(this.m_gx+1, this.m_gy))
+    if(grid.isCellWalkable(this.m_gx+1, this.m_gy))
         retArr.push( {gx: this.m_gx+1, gy: this.m_gy} );
 
     // bottom
-    // if(grid.isEmpty(this.m_gx-1, this.m_gy+1))
+    // if(grid.isCellWalkable(this.m_gx-1, this.m_gy+1))
     //     retArr.push( {gx: this.m_gx-1, gy: this.m_gy+1});
 
-    if(grid.isEmpty(this.m_gx, this.m_gy+1))
+    if(grid.isCellWalkable(this.m_gx, this.m_gy+1))
         retArr.push( {gx: this.m_gx, gy: this.m_gy+1} );
 
-    // if(grid.isEmpty(this.m_gx+1, this.m_gy+1))
+    // if(grid.isCellWalkable(this.m_gx+1, this.m_gy+1))
     //     retArr.push( {gx: this.m_gx+1, gy: this.m_gy+1} );
 
     // var str = "\t\tgetNeighbours:";
@@ -832,7 +911,7 @@ var AStar = {
         // console.log("search:", startGX, startGY, goalGX, goalGY);
 
         // simple check to see if the goal is reachable
-        if(!grid.isEmpty(goalGX,goalGY))
+        if(!grid.isCellWalkable(goalGX,goalGY))
             return null;
 
         var openPQ = new MinHeap();
