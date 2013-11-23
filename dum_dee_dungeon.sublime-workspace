@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"hole",
+				"holeCount"
+			],
+			[
+				"CreateItem",
+				"CreateItemTreasure"
+			],
+			[
+				"player",
+				"playerID"
+			],
+			[
+				"new",
+				"newTargetGY"
+			],
+			[
+				"newT",
+				"newTargetGX"
+			],
+			[
 				"item_",
 				"item_treasure3"
 			],
@@ -48,10 +68,6 @@
 				"GameObjectManager"
 			],
 			[
-				"new",
-				"newTargetGY"
-			],
-			[
 				"pare",
 				"parentId"
 			],
@@ -62,10 +78,6 @@
 			[
 				"gol",
 				"goalGY"
-			],
-			[
-				"player",
-				"playerID"
 			],
 			[
 				"pingDisconnect",
@@ -263,7 +275,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 34456,
+				"buffer_size": 34495,
 				"line_ending": "Windows"
 			}
 		},
@@ -271,7 +283,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 15581,
+				"buffer_size": 18356,
 				"line_ending": "Windows"
 			}
 		},
@@ -287,7 +299,7 @@
 			"file": "main.css",
 			"settings":
 			{
-				"buffer_size": 1205,
+				"buffer_size": 1208,
 				"line_ending": "Unix"
 			}
 		}
@@ -350,6 +362,36 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"CreateItem",
+			"\"ic\"",
+			"\"ir\"",
+			"holeCount",
+			"maxTreasureSize",
+			"CreateItem",
+			"new Item",
+			"CreateItem",
+			"\"ic\"",
+			"CreateItem",
+			"CreateItemHole",
+			"\"ic\"",
+			"isPickable",
+			"pickup",
+			"taken",
+			"taken(",
+			"taken (",
+			"taken(",
+			"taken",
+			"isPickable",
+			"isRemovedAfterPickUp",
+			"isPickable",
+			"isCellEmpty",
+			"fall",
+			"pid",
+			"peerid",
+			"pid",
+			"routeTo",
+			"pickUp",
+			"routeTo",
 			"netComp",
 			"Item",
 			"CreateItemTreasure",
@@ -447,44 +489,18 @@
 			"lastsent",
 			"stopWalk",
 			"stopWalk(false",
-			"stopWalk(true",
-			".y",
-			".x",
-			"this.compon",
-			"AIWalkerComp",
-			"[]",
-			"contain",
-			"conatins",
-			"distBet",
-			"isEmpt",
-			"debugStr",
-			"openSet",
-			"defaultFor",
-			"console",
-			"pointer",
-			"showFPS",
-			"drawFPS",
-			"\n   \n    ",
-			"\n    ",
-			"65",
-			"Keyboard",
-			"m_sprite",
-			"m_transform",
-			"m_",
-			"=;",
-			",",
-			":",
-			"this.",
-			"consol",
-			"=",
-			";"
+			"stopWalk(true"
 		],
 		"highlight": true,
 		"in_selection": false,
 		"preserve_case": false,
-		"regex": false,
+		"regex": true,
 		"replace_history":
 		[
+			"isRemovedAfterPickUp",
+			"peerID",
+			"peerid",
+			"nwPickUp",
 			"digspot",
 			"generateMap",
 			"Treasure",
@@ -535,15 +551,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 34456,
+						"buffer_size": 34495,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								19028,
-								19039
+								9783,
+								9783
 							]
 						],
 						"settings":
@@ -642,7 +658,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 10138.0,
+						"translation.y": 4686.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -652,15 +668,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 15581,
+						"buffer_size": 18356,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								11951,
-								11951
+								14723,
+								14723
 							]
 						],
 						"settings":
@@ -758,7 +774,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 8181.0,
+						"translation.y": 10002.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -885,15 +901,15 @@
 					"file": "main.css",
 					"settings":
 					{
-						"buffer_size": 1205,
+						"buffer_size": 1208,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								663,
-								663
+								1141,
+								1147
 							]
 						],
 						"settings":
@@ -991,7 +1007,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 252.0,
+						"translation.y": 318.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

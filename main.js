@@ -42,10 +42,13 @@ function onResourcesLoaded()
 		"player2" : "images/player2.png",
 		"bg" : "images/bg.png",
 		"gradient" : "images/gradient.jpg",
-		"item_treasure1" : "images/item_treasure1.png",
-		"item_treasure2" : "images/item_treasure2.png",
-		"item_treasure3" : "images/item_treasure3.png",
-		"item_hole" : "images/hole.png",
+		"item_tres1" : "images/item_treasure1.png",
+		"item_tres2" : "images/item_treasure2.png",
+		"item_tres3" : "images/item_treasure3.png",
+		"item_gold1" : "images/item_treasure1.png",
+		"item_gold2" : "images/item_treasure2.png",
+		"item_gold3" : "images/item_treasure3.png",
+		"item_hole0" : "images/hole.png",
 	};
 
 	resources = new Resources();
@@ -90,7 +93,6 @@ function generateMap()
 		var netComp = player1Gob.getComponent("NetComp");
 		var gx;
 		var gy;
-		var holeCount;
 		var treasuresCountObj = {};
 		var i;
 		var x;
@@ -103,6 +105,7 @@ function generateMap()
 			gy = Math.floor(Math.random()*gridOb.ny);
 
 			// check if already spawned something
+			// gx & gy should not be out of bounds
 			if(!gridOb.isCellEmpty(gx, gy))
 			{
 				i--;
@@ -110,21 +113,28 @@ function generateMap()
 			}
 
 			// check if too near other holes
-			holeCount = 0;
+			var bTooManyHoles = false;
 			for(x=gx-1; x<=gx+1; x++)
 			{
 				for(y=gy-1; y<=gy+1; y++)
 				{
 					// only count if is within bounds
-					if(gridOb.isWithinBounds(x,y) && !gridOb.isCellEmpty(x,y))
-						holeCount++;
+					if(gridOb.isWithinBounds(x,y) &&
+						treasuresCountObj[x] !== undefined &&
+						treasuresCountObj[x][y] >= maxTreasureSize)
+					{
+						bTooManyHoles = true;
+						break;
+					}
 				}
+				if(bTooManyHoles)
+					break;
 			}
-			if(holeCount >= maxTreasureSize)
+			if(bTooManyHoles)
 				continue;
 
 			// if conditions are satisfied, spawn hole item
-			item = CreateItemHole( "hole"+i, gx, gy, "hole");
+			item = CreateItem("hole", "hole"+i, gx, gy);
 			
 			// add counts to treasures
 			for(x=gx-1; x<=gx+1; x++)
@@ -136,7 +146,7 @@ function generateMap()
 						continue;
 
 					// avoid adding to other hole cells, including out of bounds
-					if(!gridOb.isCellEmpty(x,y))
+					if(!gridOb.isWithinBounds(x,y) || !gridOb.isCellEmpty(x,y))
 						continue;
 
 					if(treasuresCountObj[x] === undefined)
@@ -145,7 +155,12 @@ function generateMap()
 					if(treasuresCountObj[x][y] === undefined)
 						treasuresCountObj[x][y] = 1;
 					else
+					{
 						treasuresCountObj[x][y]++;
+
+						if(treasuresCountObj[x][y] > maxTreasureSize)
+							throw "invalid number of treasure state";
+					}
 				}
 			}
 			// also set this cell count to 0 in case it had a count before placement
@@ -160,6 +175,7 @@ function generateMap()
 						"gx" : item.gx,
 						"gy" : item.gy,
 						"typ" : item.type,
+						"rnk" : item.rank,
 					}
 				);
 			}
@@ -176,7 +192,7 @@ function generateMap()
 				if(count === 0)
 					continue;
 
-				item = CreateItemTreasure( "tres"+i, x, y, count);
+				item = CreateItem( "tres", "tres"+i, x, y, count);
 				i++;
 
 				if(netComp && netOb.isConnected)
@@ -188,6 +204,7 @@ function generateMap()
 							"gx" : item.gx,
 							"gy" : item.gy,
 							"typ" : item.type,
+							"rnk" : item.rank,
 						}
 					);
 				}
@@ -308,6 +325,8 @@ function Player(playerID_)
 	
 	this.addComponent( "AIWalkerComp", new AIWalkerComp(gridOb, 2) );
 	this.addComponent( "NetComp", new NetComp(netOb, "player"+this.playerID, this.onRecv.bind(this)) );
+
+	this.isFallen = false;
 }
 
 // Inheritance
@@ -326,8 +345,92 @@ Player.prototype.routeTo = function(newTargetGX, newTargetGY)
 		nextGY = gridOb.toGY(aiwalkercomp.destY);
 	}
 	aiwalkercomp.path = AStar.search(nextGX, nextGY, this.targetGX, this.targetGY, gridOb);
+};//end routeTo()
+
+Player.prototype.fall = function(gx,gy)
+{
+	console.log("p"+this.playerID, "fall", gx, gy);
+
+	// force sync position
+	this.gx = gx;
+	this.gy = gy;
+	this.x = gridOb.toX(this.gx);
+	this.y = gridOb.toY(this.gy);
+
+	// set state
+	this.isFallen = true;
 };
-Player.prototype.pickUp = function(itemObj)
+
+Player.prototype.onRescued = function()
+{
+	// todo animation
+	this.isFallen = false;
+};
+
+Player.prototype.rescue = function(playerID, gx, gy)
+{
+	var playerRescued = gobMan.getGob("player"+playerID+"Gob");
+	if(playerRescued.gx !== gx || playerRescued.gy !== gy)
+		throw "player rescued was at "+playerRescued.gx+","+playerRescued.gy+
+			" instead of "+gx+","+gy;
+	
+	playerRescued.onRescued();
+};
+
+Player.prototype.nwRouteTo = function(newTargetGX, newTargetGY)
+{
+	this.routeTo(newTargetGX, newTargetGY);
+
+	// send this over
+	var netComp = this.getComponent("NetComp");
+	if(netComp && netOb.isConnected)
+	{
+		netOb.send(netComp,
+			{
+				"cmd": "mv",
+				"tgx": this.targetGX,
+				"tgy": this.targetGY,
+			}
+		);
+	}
+};
+
+Player.prototype.nwFall = function(gx, gy)
+{
+	this.fall(gx,gy);
+
+	var netComp = this.getComponent("NetComp");
+	if(netComp && netOb.isConnected)
+	{
+		netOb.send(netComp,
+			{
+				"cmd" : "fl",
+				"gx" : gx,
+				"gy" : gy,
+			}
+		);
+	}
+};
+
+Player.prototype.nwRescue = function(playerID, gx, gy)
+{
+	this.rescue(playerID, gx, gy);
+
+	var netComp = this.getComponent("NetComp");
+	if(netComp && netOb.isConnected)
+	{
+		netOb.send(netComp,
+			{
+				"cmd" : "rc",
+				"pid" : playerID,
+				"gx" : gx,
+				"gy" : gy,
+			}
+		);
+	}
+};
+
+Player.prototype.nwPickUp = function(itemObj)
 {
 	var netComp;
 
@@ -373,7 +476,7 @@ Player.prototype.pickUp = function(itemObj)
 			);
 		}
 	}// end else netOb.isServer
-};
+};//end nwPickUp()
 
 // override
 Player.prototype.update = function()
@@ -412,7 +515,7 @@ Player.prototype.update = function()
 	if(Input.pointerIsReleased)
 	{
 		// check for items
-		if(!gridOb.isCellEmpty(pointerGX, pointerGY))
+		if(gridOb.isWithinBounds(pointerGX, pointerGY) && !gridOb.isCellEmpty(pointerGX, pointerGY))
 		{
 			var cellObj = gridOb.getCell(pointerGX, pointerGY);
 			while(cellObj !== null )
@@ -424,7 +527,7 @@ Player.prototype.update = function()
 					gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 0)
 				{
 					// pick up item
-					this.pickUp(cellObj);
+					this.nwPickUp(cellObj);
 					return;
 				}
 
@@ -434,25 +537,18 @@ Player.prototype.update = function()
 	}
 	if(Input.pointerIsDown)
 	{
-		console.log("clicked", pointerGX, pointerGY);
 		if(gridOb.isCellWalkable(pointerGX, pointerGY))
 		{
-			// walk
-			if(pointerGX !== this.targetGX || pointerGY !== this.targetGY)
+			if(this.isFallen)
 			{
-				this.routeTo(pointerGX, pointerGY);
-				
-				// send this over
-				var netComp = this.getComponent("NetComp");
-				if(netComp && netOb.isConnected)
+				// shout for help!
+			}
+			else
+			{
+				// walk
+				if(pointerGX !== this.targetGX || pointerGY !== this.targetGY)
 				{
-					netOb.send(netComp,
-						{
-							"cmd": "mv",
-							"tgx": this.targetGX,
-							"tgy": this.targetGY,
-						}
-					);
+					this.nwRouteTo(pointerGX, pointerGY);
 				}
 			}
 		}//end if(gridOb.isEmpty(pointerGX, pointerGY))
@@ -470,14 +566,26 @@ Player.prototype.onRecv = function(data)
 			this.routeTo(data.tgx, data.tgy);
 		}
 		break;
+		case "fl":
+		{
+			// params: data.gx, data.gy
+			this.fall(data.gx, data.gy);
+		}
+		break;
+		case "rc":
+		{
+			// params: data.pid, data.gx, data.gy
+			this.rescue(data.pid, data.gx, data.gy);
+		}
+		break;
 		case "ic": // item create
 		{
-			// params: data.iid, data.gx, data.gy, data.typ
+			// params: data.iid, data.gx, data.gy, data.typ, data.rnk
 			item = gobMan.getGob(data.iid);
 			if(!item)
 			{
 				// only create if not already existent
-				item = new Item(data.iid, data.gx, data.gy, data.typ);
+				item = CreateItem(data.typ, data.iid, data.gx, data.gy, data.rnk);
 			}
 		}
 		break;
@@ -489,7 +597,7 @@ Player.prototype.onRecv = function(data)
 			{
 				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
 				// for now just fake it
-				item = new Item(data.iid, data.gx, data.gy, data.typ);
+				item = new Item(data.typ, data.iid, data.gx, data.gy);
 			}
 
 			item.taken(this.playerID);
@@ -503,14 +611,14 @@ Player.prototype.onRecv = function(data)
 			{
 				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
 				// for now just fake it
-				item = new Item(data.iid, data.gx, data.gy, data.typ);
+				item = new Item(data.typ, data.iid, data.gx, data.gy);
 			}
 
 			// if there is no owner,
 			if(item.owner === 0)
 			{
 				// can be taken
-				this.pickUp(item);
+				this.nwPickUp(item);
 			}
 			else
 			{
@@ -529,19 +637,21 @@ Player.prototype.onRecv = function(data)
 * "it" : take item
 * "ir" : request to take item
 *********************************/
-function Item(id_, gx_, gy_, type_)
+function Item(type_, id_, gx_, gy_, rank_)
 {
 	GameObject.call(this);
 
-	this.sprite = new ImageSprite( resources.images["item_"+type_] );
+	console.log("***item:", id_, type_, rank_);
+	this.sprite = new ImageSprite( resources.images["item_"+type_+rank_] );
 
 	this.id = id_;
 	this.gx = gx_;
 	this.gy = gy_;
 	this.type = type_;
+	this.rank = rank_;
 	this.owner = 0; // no one
 	this.isPickable = true;
-
+	
 	this.x = gridOb.toX(this.gx);
 	this.y = gridOb.toY(this.gy);
 	gridOb.addToCell(this.gx, this.gy, this);
@@ -565,22 +675,44 @@ Item.prototype.taken = function(playerID_)
 	
 	this.onTaken();
 };
-
-function CreateItemHole(id_, gx_, gy_)
+// hole is buried
+function CreateItem(type_, id_, gx_, gy_, rank_)
 {
-	var item = new Item(id_, gx_, gy_, "hole");
-	item.isPickable = false;
-	item.onTaken = function()
+	var item;
+	switch(type_)
 	{
-		var playerGob = gobMan.getGob( "player"+this.owner+"Gob" );
-		playerGob.fall(gx_,gy_);
-	};
-
-	return item;
-}
-function CreateItemTreasure(id_, gx_, gy_, size_)
-{
-	var item = new Item(id_, gx_, gy_, "treasure"+size_);
+		case "hole": // hole is the item that is buried, makes player fall
+		{
+			item = new Item(type_, id_, gx_, gy_, 0);
+			item.visible = false;
+			item.onTaken = function()
+			{
+				var playerGob = gobMan.getGob( "player"+this.owner+"Gob" );
+				playerGob.fall(gx_,gy_);
+				this.visible = true;
+				this.isPickable = false;
+			};
+		}
+		break;
+		case "tres": // treasure is the item that is buried
+		{
+			item = new Item(type_, id_, gx_, gy_, rank_);
+			item.itemRank = rank_;
+			item.visible = false;
+			item.onTaken = function()
+			{
+				var itemNum = parseInt(this.id.substring(4), 10);
+				CreateItem("gold", "gold"+itemNum, this.gx, this.gy, this.itemRank);
+				this.remove();
+			};
+		}
+		break;
+		case "gold": // Gold is the item that is dug out
+		{
+			item = new Item(type_, id_, gx_, gy_, rank_);
+		}
+		break;
+	}
 
 	return item;
 }
@@ -641,7 +773,7 @@ function CreateConnectScreen()
 	var contentNode = CreateDialog("ConnectScreen",
 		"Grab a peer to start",
 		' \
-Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
+Your ID: <input type="text" id="peerID" class="peerID" placeholder="connecting..." readonly><br> \
 Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
 <input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
 		'
@@ -661,8 +793,8 @@ Please reload. \
 }
 function onClickConnect()
 {
-	var otherPid = document.getElementById("rid").value;
-	netOb.connect(otherPid);
+	var otherPeerID = document.getElementById("rid").value;
+	netOb.connect(otherPeerID);
 }
 
 /*********************************
@@ -680,17 +812,17 @@ GameNet.prototype.onOpen = function(id)
 {
 	Net.prototype.onOpen.call(this, id);
 
-	var pidNode = document.getElementById("pid");
-	if(pidNode)
+	var peerIDNode = document.getElementById("peerID");
+	if(peerIDNode)
 	{
-		pidNode.value = this.pid;
+		peerIDNode.value = this.peerID;
 	}
 };
 GameNet.prototype.onConnect = function(conn)
 {
 	Net.prototype.onConnect.call(this, conn);
 
-	if(this.pid < this.otherPid)
+	if(this.peerID < this.otherPeerID)
 	{
 		this.playerID = 1;
 		this.isServer = true;

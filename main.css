@@ -62,7 +62,7 @@ div.dialogBody
 	font-size:18px;
 	color: #8be7e6;
 }
-#pid
+.peerID
 {
 	font-weight: bold;
 }

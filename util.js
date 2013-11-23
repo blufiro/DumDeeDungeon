@@ -280,6 +280,7 @@ Component.prototype.update = function()
 function GameObject()
 {
     this.transform = new Transform();
+    this.visible = true;
     this.sprite = null;
 
     this.m_vx = 0;
@@ -338,6 +339,8 @@ GameObject.prototype.update = function()
 
 GameObject.prototype.draw = function(ctx)
 {
+    if(!this.visible)
+        return;
     if(this.sprite !== null)
     {
         ctx.save();
@@ -697,7 +700,7 @@ Grid.prototype.isWithinBounds = function(gx, gy)
 };
 Grid.prototype.isCellEmpty = function(gx,gy)
 {
-    return (this.isWithinBounds(gx,gy) && this.m_cells[gx][gy] === null);
+    return (this.m_cells[gx][gy] === null);
 };
 Grid.prototype.isCellWalkable = function(gx, gy)
 {
@@ -1022,8 +1025,8 @@ function Net(key_, pingTimeoutMS_, pingDisconnectMS_)
     this.pingState = this.PING_STATE_READY;
 }
 Net.prototype = {
-    get pid() { return this.m_peerID; },
-    get otherPid() { return this.m_connection.peer; },
+    get peerID() { return this.m_peerID; },
+    get otherPeerID() { return this.m_connection.peer; },
     get isOnline() { return (this.m_peer && !this.m_peer.disconnected); },
     get isConnected() { return (this.m_connection && this.m_connection.open); },
 
