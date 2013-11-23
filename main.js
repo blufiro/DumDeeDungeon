@@ -514,6 +514,21 @@ Player.prototype.update = function()
 
 	if(Input.pointerIsReleased)
 	{
+		// save other player
+		var otherPlayerID = 0;
+		switch(this.playerID)
+		{
+			case 1: otherPlayerID = 2; break;
+			case 2: otherPlayerID = 1; break;
+		}
+		var otherPlayerGob = gobMan.getGob("player"+otherPlayerID+"Gob");
+		if(otherPlayerGob && otherPlayerGob.isFallen &&
+			gridOb.manhatDist(otherPlayerGob.gx, otherPlayerGob.gy, this.gx, this.gy) <= 1)
+		{
+			this.nwRescue(otherPlayerID, otherPlayerGob.gx, otherPlayerGob.gy);
+			return;
+		}
+
 		// check for items
 		if(gridOb.isWithinBounds(pointerGX, pointerGY) && !gridOb.isCellEmpty(pointerGX, pointerGY))
 		{

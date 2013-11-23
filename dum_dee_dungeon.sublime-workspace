@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"other",
+				"otherPlayerGob"
+			],
+			[
 				"hole",
 				"holeCount"
 			],
@@ -283,7 +287,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 18356,
+				"buffer_size": 18802,
 				"line_ending": "Windows"
 			}
 		},
@@ -362,6 +366,9 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"nwRescue",
+			"rescue",
+			"rescure",
 			"CreateItem",
 			"\"ic\"",
 			"\"ir\"",
@@ -486,10 +493,7 @@
 			"w",
 			"length",
 			"lastrec",
-			"lastsent",
-			"stopWalk",
-			"stopWalk(false",
-			"stopWalk(true"
+			"lastsent"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -668,15 +672,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 18356,
+						"buffer_size": 18802,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								14723,
-								14723
+								2094,
+								2094
 							]
 						],
 						"settings":
@@ -774,7 +778,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 10002.0,
+						"translation.y": 1212.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -1007,7 +1011,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 318.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
