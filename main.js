@@ -11,7 +11,7 @@ var gridOb;
 var netOb;
 var intervalID;
 var showDebugInfo = true;
-var numHoles = 10;
+var numHoles = 15;
 var maxTreasureSize = 3;
 
 function main(onErrorFunc_)
@@ -42,9 +42,7 @@ function onResourcesLoaded()
 		"player2" : "images/player2.png",
 		"bg" : "images/bg.png",
 		"gradient" : "images/gradient.jpg",
-		"item_tres1" : "images/item_treasure1.png",
-		"item_tres2" : "images/item_treasure2.png",
-		"item_tres3" : "images/item_treasure3.png",
+		"item_item0" : "images/item.png",
 		"item_gold1" : "images/item_treasure1.png",
 		"item_gold2" : "images/item_treasure2.png",
 		"item_gold3" : "images/item_treasure3.png",
@@ -327,6 +325,7 @@ function Player(playerID_)
 	this.addComponent( "NetComp", new NetComp(netOb, "player"+this.playerID, this.onRecv.bind(this)) );
 
 	this.isFallen = false;
+	this.carriedItem = null;
 }
 
 // Inheritance
@@ -375,6 +374,36 @@ Player.prototype.rescue = function(playerID, gx, gy)
 			" instead of "+gx+","+gy;
 	
 	playerRescued.onRescued();
+};
+
+Player.prototype.pickUp = function(itemObj)
+{
+	// take item
+	itemObj.taken(this.playerID);
+
+	// carry item
+	if(itemObj.isCarryable)
+	{
+		if(this.carriedItem !== null)
+			throw "Already carrying an item!";
+
+		this.carriedItem = itemObj;
+		this.carriedItem.x = 0;
+		this.carriedItem.y = -5;
+		this.addChild(this.carriedItem);
+	}
+};
+
+Player.prototype.putDown = function(itemObj, gx_, gy_)
+{
+	// put down item
+	if(this.carriedItem !== itemObj || this.carriedItem === null)
+		throw "Put down invalid item";
+
+	this.carriedItem.removeParent();
+	this.carriedItem = null;
+
+	itemObj.placed(this.playerID, gx_, gy_);
 };
 
 Player.prototype.nwRouteTo = function(newTargetGX, newTargetGY)
@@ -441,8 +470,7 @@ Player.prototype.nwPickUp = function(itemObj)
 			throw "Item already has an owner";
 		else
 		{
-			// take item
-			itemObj.taken(this.playerID);
+			this.pickUp(itemObj);
 
 			netComp = this.getComponent("NetComp");
 			if(netComp && netOb.isConnected)
@@ -454,6 +482,7 @@ Player.prototype.nwPickUp = function(itemObj)
 						"gx" : itemObj.gx,
 						"gy" : itemObj.gy,
 						"typ" : itemObj.type,
+						"rnk" : itemObj.rank,
 					}
 				);
 			}
@@ -472,11 +501,62 @@ Player.prototype.nwPickUp = function(itemObj)
 					"gx" : itemObj.gx,
 					"gy" : itemObj.gy,
 					"typ" : itemObj.type,
+					"rnk" : itemObj.rank,
 				}
 			);
 		}
 	}// end else netOb.isServer
 };//end nwPickUp()
+
+Player.prototype.nwPutDown = function(itemObj)
+{
+	var netComp;
+	
+	// server gets to cheat
+	if(netOb.isServer)
+	{
+		if(itemObj.owner === 0)
+			throw "Item does not have an owner";
+		else
+		{
+			// put down item
+			this.putDown(itemObj, this.gx, this.gy);
+
+			netComp = this.getComponent("NetComp");
+			if(netComp && netOb.isConnected)
+			{
+				netOb.send(netComp,
+					{
+						"cmd": "ip", // item placed
+						"iid": itemObj.id,
+						"gx" : this.gx,
+						"gy" : this.gy,
+						"typ" : itemObj.type,
+						"rnk" : itemObj.rank,
+					}
+				);
+			}
+		}
+	}
+	else
+	{
+		// client has to ask server for permission
+		netComp = this.getComponent("NetComp");
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "iq", // item place request
+					"iid": itemObj.id,
+					"gx" : this.gx,
+					"gy" : this.gy,
+					"typ" : itemObj.type,
+					"rnk" : itemObj.rank,
+				}
+			);
+		}
+	}// end else netOb.isServer
+};//end nwPutDown()
 
 // override
 Player.prototype.update = function()
@@ -530,24 +610,32 @@ Player.prototype.update = function()
 		}
 
 		// check for items
-		if(gridOb.isWithinBounds(pointerGX, pointerGY) && !gridOb.isCellEmpty(pointerGX, pointerGY))
+		if(gridOb.isWithinBounds(pointerGX, pointerGY) &&
+			// 0 distance means player must be on cell before item can be picked up
+			gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 0)
 		{
-			var cellObj = gridOb.getCell(pointerGX, pointerGY);
-			while(cellObj !== null )
+			// put down item
+			if( gridOb.isCellEmpty(this.gx, pointerGY) && this.carriedItem !== null )
 			{
-				if(cellObj instanceof Item &&
-					cellObj.isPickable &&
-					// 0 distance means player must be on cell before
-					// item can be picked up
-					gridOb.manhatDist(pointerGX, pointerGY, this.gx, this.gy) <= 0)
+				this.nwPutDown(this.carriedItem);
+			}
+			// pick up item
+			else if( !gridOb.isCellEmpty(pointerGX, pointerGY) && this.carriedItem === null )
+			{
+				var cellObj = gridOb.getCell(pointerGX, pointerGY);
+				while(cellObj !== null )
 				{
-					// pick up item
-					this.nwPickUp(cellObj);
-					return;
-				}
+					if(cellObj instanceof Item &&
+						cellObj.isPickable)
+					{
+						// pick up item
+						this.nwPickUp(cellObj);
+						return;
+					}
 
-				cellObj = cellObj.next;
-			}//end while cellObj !== null
+					cellObj = cellObj.next;
+				}//end while cellObj !== null
+			}
 		}//end if cell empty
 	}
 	if(Input.pointerIsDown)
@@ -606,27 +694,27 @@ Player.prototype.onRecv = function(data)
 		break;
 		case "it": // item taken
 		{
-			// params: data.iid, data.gx, data.gy, data.typ
+			// params: data.iid, data.gx, data.gy, data.typ, data.rnk
 			item = gobMan.getGob(data.iid);
 			if(!item)
 			{
-				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ, data.rnk);
 				// for now just fake it
-				item = new Item(data.typ, data.iid, data.gx, data.gy);
+				item = new Item(data.typ, data.iid, data.gx, data.gy, data.rnk);
 			}
 
-			item.taken(this.playerID);
+			this.pickUp(item);
 		}
 		break;
 		case "ir": // item request
 		{
-			// params: data.iid, data.gx, data.gy, data.typ
+			// params: data.iid, data.gx, data.gy, data.typ, data.rnk
 			item = gobMan.getGob(data.iid);
 			if(!item)
 			{
-				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ);
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ, data.rnk);
 				// for now just fake it
-				item = new Item(data.typ, data.iid, data.gx, data.gy);
+				item = new Item(data.typ, data.iid, data.gx, data.gy, data.rnk);
 			}
 
 			// if there is no owner,
@@ -634,6 +722,42 @@ Player.prototype.onRecv = function(data)
 			{
 				// can be taken
 				this.nwPickUp(item);
+			}
+			else
+			{
+				// do not reply; it cannot be taken
+			}
+		}
+		break;
+		case "ip": // item placed
+		{
+			item = gobMan.getGob(data.iid);
+			if(!item)
+			{
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ, data.rnk);
+				// for now just fake it
+				item = new Item(data.typ, data.iid, data.gx, data.gy, data.rnk);
+			}
+
+			this.putDown(item, data.gx. data.gy);
+		}
+		break;
+		case "iq": // item place request
+		{
+			// params: data.iid, data.gx, data.gy, data.typ, data.rnk
+			item = gobMan.getGob(data.iid);
+			if(!item)
+			{
+				console.log("Item cannot be found!", data.iid, data.gx, data.gy, data.typ, data.rnk);
+				// for now just fake it
+				item = new Item(data.typ, data.iid, data.gx, data.gy, data.rnk);
+			}
+
+			// if there is no owner,
+			if(item.owner === this.playerID)
+			{
+				// can be taken
+				this.nwPutDown(item);
 			}
 			else
 			{
@@ -651,6 +775,8 @@ Player.prototype.onRecv = function(data)
 * "ic" : creates item
 * "it" : take item
 * "ir" : request to take item
+* "ip" : place item
+* "iq" : request to place item
 *********************************/
 function Item(type_, id_, gx_, gy_, rank_)
 {
@@ -666,19 +792,26 @@ function Item(type_, id_, gx_, gy_, rank_)
 	this.rank = rank_;
 	this.owner = 0; // no one
 	this.isPickable = true;
+	this.isCarryable = true;
 	
-	this.x = gridOb.toX(this.gx);
-	this.y = gridOb.toY(this.gy);
-	gridOb.addToCell(this.gx, this.gy, this);
-	gobMan.addGob( this.id, this);
+	this.addToGrid();
 
-	// set remove as default action
-	this.onTaken = this.remove;
+	// set removeFromGrid as default action
+	this.onTaken = this.removeFromGrid;
+	// set addToGrid as default action
+	this.onPlaced = this.addToGrid;
 }
 
 Item.prototype = Object.create(GameObject.prototype);
 
-Item.prototype.remove = function()
+Item.prototype.addToGrid = function()
+{
+	this.x = gridOb.toX(this.gx);
+	this.y = gridOb.toY(this.gy);
+	gridOb.addToCell(this.gx, this.gy, this);
+	gobMan.addGob( this.id, this);
+};
+Item.prototype.removeFromGrid = function()
 {
 	gridOb.removeFromCell(this.gx, this.gy, this);
 	// rm from gobMan
@@ -690,7 +823,15 @@ Item.prototype.taken = function(playerID_)
 	
 	this.onTaken();
 };
-// hole is buried
+Item.prototype.placed = function(playerID_, gx_, gy_)
+{
+	this.owner = 0;
+	this.gx = gx_;
+	this.gy = gy_;
+
+	this.onPlaced();
+};
+
 function CreateItem(type_, id_, gx_, gy_, rank_)
 {
 	var item;
@@ -699,12 +840,16 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 		case "hole": // hole is the item that is buried, makes player fall
 		{
 			item = new Item(type_, id_, gx_, gy_, 0);
-			item.visible = false;
+			item.visible = true;
+			item.sprite.image = resources.images["item_"+"item0"];
+			item.isCarryable = false;
 			item.onTaken = function()
 			{
 				var playerGob = gobMan.getGob( "player"+this.owner+"Gob" );
 				playerGob.fall(gx_,gy_);
 				this.visible = true;
+				// change image
+				this.sprite.image = resources.images["item_"+this.type+this.rank];
 				this.isPickable = false;
 			};
 		}
@@ -713,12 +858,14 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 		{
 			item = new Item(type_, id_, gx_, gy_, rank_);
 			item.itemRank = rank_;
-			item.visible = false;
+			item.visible = true;
+			item.sprite.image = resources.images["item_"+"item0"];
+			item.isCarryable = false;
 			item.onTaken = function()
 			{
 				var itemNum = parseInt(this.id.substring(4), 10);
 				CreateItem("gold", "gold"+itemNum, this.gx, this.gy, this.itemRank);
-				this.remove();
+				this.removeFromGrid();
 			};
 		}
 		break;
@@ -730,6 +877,15 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 	}
 
 	return item;
+}
+
+/*********************************
+* COLLECTION POINT
+*********************************/
+
+function CollectionSpot(gx,gy)
+{
+
 }
 
 /*********************************

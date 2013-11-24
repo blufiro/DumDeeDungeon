@@ -253,6 +253,11 @@ function ImageSprite(image)
     this.img = image;
 }
 
+ImageSprite.prototype = {
+    get image() { return this.img; },
+    set image(value) { this.img = value; },
+};
+
 ImageSprite.prototype.draw = function(ctx)
 {
     ctx.drawImage(this.img, 0, 0);
@@ -291,7 +296,9 @@ function GameObject()
 
     this.m_isWalkable = true;
 
-    this.m_components  = {};
+    this.m_components = {};
+    this.m_children = [];
+    this.m_parent = null;
 }
 
 GameObject.prototype = {
@@ -318,6 +325,9 @@ GameObject.prototype = {
 
     get isWalkable() { return this.m_isWalkable; },
     set isWalkable(value) { this.m_isWalkable = value; },
+
+    get parent() { return this.m_parent; },
+    set parent(value) { this.m_parent = value; },
 };
 
 GameObject.prototype.vxy = function(vx_ , vy_)
@@ -348,6 +358,13 @@ GameObject.prototype.draw = function(ctx)
         var t = this.transform;
         ctx.transform(t.a, t.b, t.c, t.d, t.e, t.f);
         this.sprite.draw(ctx);
+
+        // recursively draw children
+        var childrenLen = this.m_children.length;
+        for(var i=0; i<childrenLen; i++)
+        {
+            this.m_children[i].draw(ctx);
+        }
 
         ctx.restore();
     }
@@ -387,6 +404,36 @@ GameObject.prototype.removeComponent = function(componentName)
         return component;
     }
     return null;
+};
+
+GameObject.prototype.addChild = function(gob)
+{
+    if( ! (gob instanceof GameObject) )
+        throw "adding invalid game object child";
+
+    this.m_children.push(gob);
+    gob.parent = this;
+};
+GameObject.prototype.removeChild = function(gob)
+{
+    for(var i=this.m_children.length-1; i>=0; i--)
+    {
+        if(this.m_children[i] === gob)
+        {
+            this.m_children.splice(i,1);
+            gob.parent = null;
+            break;
+        }
+    }
+};
+GameObject.prototype.removeParent = function()
+{
+    if(this.parent !== null)
+        this.parent.removeChild(this);
+};
+GameObject.prototype.getChild = function(index)
+{
+    return this.m_children[index];
 };
 
 /*********************************

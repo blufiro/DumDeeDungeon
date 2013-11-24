@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"Game",
+				"GameObject"
+			],
+			[
+				"add",
+				"addToGrid"
+			],
+			[
 				"other",
 				"otherPlayerGob"
 			],
@@ -65,10 +73,6 @@
 			],
 			[
 				"GameO",
-				"GameObjectManager"
-			],
-			[
-				"Game",
 				"GameObjectManager"
 			],
 			[
@@ -279,7 +283,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 34495,
+				"buffer_size": 35616,
 				"line_ending": "Windows"
 			}
 		},
@@ -287,7 +291,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 18802,
+				"buffer_size": 22187,
 				"line_ending": "Windows"
 			}
 		},
@@ -366,6 +370,23 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"carriedItem",
+			"isCarry",
+			"draw",
+			"save()",
+			"ctx.save();",
+			"Transform",
+			"putDown",
+			"\"ip\"",
+			"\"it\"",
+			"getGob(\"p",
+			"placed",
+			"remove",
+			"placed",
+			"taken",
+			"\"ir\"",
+			"\"it\"",
+			"generateMap",
 			"nwRescue",
 			"rescue",
 			"rescure",
@@ -476,24 +497,7 @@
 			".peer",
 			"playerGob",
 			"netID",
-			"Netcomp",
-			"netID",
-			"m_connection",
-			"gameUI",
-			"Netcomp",
-			"date",
-			".now",
-			"m_lastrecv",
-			"connect",
-			"container",
-			"ConnectScr",
-			"w",
-			"w\nw",
-			"w\nw\nw",
-			"w",
-			"length",
-			"lastrec",
-			"lastsent"
+			"Netcomp"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -501,6 +505,7 @@
 		"regex": true,
 		"replace_history":
 		[
+			"removeFromGrid",
 			"isRemovedAfterPickUp",
 			"peerID",
 			"peerid",
@@ -555,15 +560,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 34495,
+						"buffer_size": 35616,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								9783,
-								9783
+								13267,
+								13271
 							]
 						],
 						"settings":
@@ -662,7 +667,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 4686.0,
+						"translation.y": 6644.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -672,15 +677,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 18802,
+						"buffer_size": 22187,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2094,
-								2094
+								8419,
+								8419
 							]
 						],
 						"settings":
@@ -778,7 +783,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1212.0,
+						"translation.y": 5551.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
