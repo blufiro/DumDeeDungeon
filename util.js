@@ -17,6 +17,8 @@ function loadScript(url, callback)
 
 function defaultFor(arg, val) { return typeof arg !== 'undefined' ? arg : val; }
 
+function randInt(min, max) { return Math.floor(Math.random()*(max-min+1) + min); }
+
 /*********************************
 * RESIZE GAME, KEEP ASPECT RATIO
 * from Gopherwood Studios

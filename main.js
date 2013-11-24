@@ -11,8 +11,10 @@ var gridOb;
 var netOb;
 var intervalID;
 var showDebugInfo = true;
-var numHoles = 15;
-var maxTreasureSize = 3;
+var NUM_COLLECTION = 2;
+var NUM_HOLES = 15;
+var MAX_TREASURE_SIZE = 3;
+var MAX_COLLECTED_ITEMS = 5;
 
 function main(onErrorFunc_)
 {
@@ -47,6 +49,7 @@ function onResourcesLoaded()
 		"item_gold2" : "images/item_treasure2.png",
 		"item_gold3" : "images/item_treasure3.png",
 		"item_hole0" : "images/hole.png",
+		"collect" : "images/collect.png",
 	};
 
 	resources = new Resources();
@@ -96,11 +99,71 @@ function generateMap()
 		var x;
 		var y;
 
-		// spawn holes
-		for(i=0; i<numHoles; i++)
+		var offsets = [
+			0,0,
+			0,1,
+			1,0,
+			0,-1,
+			-1,0,
+		];
+
+		// spawn collection point
+		for(i=0; i<NUM_COLLECTION; i++)
 		{
-			gx = Math.floor(Math.random()*gridOb.nx);
-			gy = Math.floor(Math.random()*gridOb.ny);
+			gx = randInt(gridOb.nx/3, gridOb.ny*2/3);
+			gy = randInt(gridOb.ny/3, gridOb.ny*2/3);
+
+			// check if already spawned something
+			// gx & gy should not be out of bounds
+			if(!gridOb.isCellEmpty(gx, gy))
+			{
+				i--;
+				continue;
+			}
+
+			// check if too near other holes
+			var bTooNearCollection = false;
+			for(x=gx-1; x<=gx+1; x++)
+			{
+				for(y=gy-1; y<=gy+1; y++)
+				{
+					// only count if is within bounds
+					if(gridOb.isWithinBounds(x,y) &&
+						treasuresCountObj[x] !== undefined &&
+						treasuresCountObj[x][y] < 0)
+					{
+						bTooNearCollection = true;
+						break;
+					}
+				}
+				if(bTooNearCollection)
+					break;
+			}
+			if(bTooNearCollection)
+			{
+				i--;
+				continue;
+			}
+
+			for(var j=0; j<offsets.length;j+=2)
+			{
+				x = gx+offsets[j];
+				y = gy+offsets[j+1];
+				if(treasuresCountObj[x] === undefined)
+					treasuresCountObj[x] = {};
+
+				if(treasuresCountObj[x][y] === undefined)
+					treasuresCountObj[x][y] = -987;
+			}
+
+			var colSpot = new CollectionSpot("colt"+i, gx,gy);
+		}
+
+		// spawn holes
+		for(i=0; i<NUM_HOLES; i++)
+		{
+			gx = randInt(0, gridOb.nx-1);
+			gy = randInt(0, gridOb.ny-1);
 
 			// check if already spawned something
 			// gx & gy should not be out of bounds
@@ -119,7 +182,9 @@ function generateMap()
 					// only count if is within bounds
 					if(gridOb.isWithinBounds(x,y) &&
 						treasuresCountObj[x] !== undefined &&
-						treasuresCountObj[x][y] >= maxTreasureSize)
+						(treasuresCountObj[x][y] >= MAX_TREASURE_SIZE ||
+							treasuresCountObj[x][y] < 0)
+						)
 					{
 						bTooManyHoles = true;
 						break;
@@ -129,7 +194,10 @@ function generateMap()
 					break;
 			}
 			if(bTooManyHoles)
+			{
+				i--;
 				continue;
+			}
 
 			// if conditions are satisfied, spawn hole item
 			item = CreateItem("hole", "hole"+i, gx, gy);
@@ -156,7 +224,7 @@ function generateMap()
 					{
 						treasuresCountObj[x][y]++;
 
-						if(treasuresCountObj[x][y] > maxTreasureSize)
+						if(treasuresCountObj[x][y] > MAX_TREASURE_SIZE)
 							throw "invalid number of treasure state";
 					}
 				}
@@ -187,7 +255,7 @@ function generateMap()
 			{
 				var count = treasuresCountObj[x][y];
 
-				if(count === 0)
+				if(count <= 0)
 					continue;
 
 				item = CreateItem( "tres", "tres"+i, x, y, count);
@@ -293,7 +361,7 @@ function drawDebugInfo()
 function cheatsUpdate()
 {
 	// force remove screen and set playerID
-	if(netOb.playerID === 0 && Input.keys[Keys.Q] && Input.keys[Keys.P])
+	if(netOb.playerID === 0 && Input.keys[Keys.W] && Input.keys[Keys.P])
 	{
 		RemoveScreen();
 		netOb.playerID = 1;
@@ -782,7 +850,6 @@ function Item(type_, id_, gx_, gy_, rank_)
 {
 	GameObject.call(this);
 
-	console.log("***item:", id_, type_, rank_);
 	this.sprite = new ImageSprite( resources.images["item_"+type_+rank_] );
 
 	this.id = id_;
@@ -883,10 +950,39 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 * COLLECTION POINT
 *********************************/
 
-function CollectionSpot(gx,gy)
+function CollectionSpot(id_,gx_,gy_)
 {
+	GameObject.call(this);
 
+	this.maxCollectedItems = MAX_COLLECTED_ITEMS;
+	this.collectedItems = [];
+
+	this.sprite = new ImageSprite( resources.images["collect"] );
+
+	this.id = id_;
+	this.gx = gx_;
+	this.gy = gy_;
+
+	this.isWalkable = false;
+
+	this.x = gridOb.toX(this.gx);
+	this.y = gridOb.toY(this.gy);
+	gridOb.addToCell(this.gx, this.gy, this);
+	gobMan.addGob( this.id, this);
 }
+
+CollectionSpot.prototype = Object.create(GameObject.prototype);
+
+CollectionSpot.prototype.collectItem = function(item)
+{
+	this.collectedItems.push(item);
+
+	if(this.collectedItems.length >= this.maxCollectedItems)
+	{
+		// send this collection spot up
+		this.raise();
+	}
+};
 
 /*********************************
 * SCREENS
