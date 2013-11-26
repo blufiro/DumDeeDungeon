@@ -252,6 +252,8 @@ Transform.prototype = {
 *********************************/
 function ImageSprite(image)
 {
+    if(image === undefined)
+        throw "Image is undefined";
     this.img = image;
 }
 
@@ -263,6 +265,62 @@ ImageSprite.prototype = {
 ImageSprite.prototype.draw = function(ctx)
 {
     ctx.drawImage(this.img, 0, 0);
+};
+
+/*********************************
+* TEXT SPRITE 
+* font: "Monospace"
+* size: 8
+* color: "#000000"
+* hAlign: "left" (default)
+*********************************/
+//* vAlign: VALIGN_BOTTOM (default)
+// var VALIGN_BOTTOM = 0;
+// var VALIGN_CENTER = 1;
+// var VALIGN_TOP = 2;
+function TextSprite(font, size, color, str, hAlign)//, vAlign)
+{
+    this.m_font = font;
+    this.m_size = size;
+    this.m_color = color;
+    this.m_text = str;
+    this.m_hAlign = defaultFor(hAlign, "left");
+    // this.m_vAlign = defaultFor(vAlign, VALIGN_BOTTOM);
+}
+
+TextSprite.prototype = {
+    get font() { return this.m_font; },
+    set font(value){ this.m_font = value; },
+    get size()  { return this.m_size; },
+    set size(value) { this.m_size = value; },
+    get color() { return this.m_color; },
+    set color(value) { this.m_color = value; },
+    get text() { return this.m_text; },
+    set text(value) { this.m_text = value; },
+    get hAlign() { return this.m_hAlign; },
+    set hAlign(value) { this.m_hAlign = value; },
+    // get vAlign() { return this.m_vAlign; },
+    // set vAlign(value) { this.m_vAlign = value; },
+};
+
+TextSprite.prototype.draw = function(ctx)
+{
+    ctx.font = this.m_size+"px "+this.m_font;
+    ctx.fillStyle = this.m_color;
+    ctx.textAlign = this.m_hAlign;
+
+    // var y = 0;
+
+    // if(this.m_vAlign === VALIGN_CENTER)
+    // {
+    //     y = this.m_size/2;
+    // }
+    // if(this.m_vAlign === VALIGN_TOP)
+    // {
+    //     y = this.m_size;
+    // }
+
+    ctx.fillText(this.m_text, 0, 0);
 };
 
 /*********************************
@@ -353,23 +411,25 @@ GameObject.prototype.draw = function(ctx)
 {
     if(!this.visible)
         return;
+    
+    ctx.save();
+    
+    var t = this.transform;
+    ctx.transform(t.a, t.b, t.c, t.d, t.e, t.f);
+        
     if(this.sprite !== null)
     {
-        ctx.save();
-        
-        var t = this.transform;
-        ctx.transform(t.a, t.b, t.c, t.d, t.e, t.f);
         this.sprite.draw(ctx);
-
-        // recursively draw children
-        var childrenLen = this.m_children.length;
-        for(var i=0; i<childrenLen; i++)
-        {
-            this.m_children[i].draw(ctx);
-        }
-
-        ctx.restore();
     }
+
+    // recursively draw children
+    var childrenLen = this.m_children.length;
+    for(var i=0; i<childrenLen; i++)
+    {
+        this.m_children[i].draw(ctx);
+    }
+
+    ctx.restore();
 };
 
 GameObject.prototype.refreshVelocity = function()
@@ -470,7 +530,9 @@ GameObjectManager.prototype.removeGob = function(gobName)
     {
         delete this.m_gobs[gobName];
         this.m_gobsLen--;
+        return true;
     }
+    return false;
 };
 GameObjectManager.prototype.update = function()
 {
@@ -480,14 +542,30 @@ GameObjectManager.prototype.update = function()
         this.m_gobs[i].update();
     }
 };
-GameObjectManager.prototype.draw = function(ctx)
+// drawing is not supported in GameObjectManager.
+// attached gob to game object tree using addChild instead.
+// GameObjectManager.prototype.draw = function(ctx)
+// {
+//     // draw back to front
+//     for(var i in this.m_gobs)
+//     {
+//         this.m_gobs[i].draw(ctx);
+//     }
+// };
+
+/*********************************
+* TEXT GAME OBJECT 
+*********************************/
+function TextGameObject(x_,y_,font, size, color, str, hAlign)
 {
-    // draw back to front
-    for(var i in this.m_gobs)
-    {
-        this.m_gobs[i].draw(ctx);
-    }
-};
+    GameObject.call(this);
+
+    this.x = x_;
+    this.y = y_;
+    this.sprite = new TextSprite(font, size, color, str, hAlign);
+}
+
+TextGameObject.prototype = Object.create(GameObject.prototype);
 
 /*********************************
 * COMMON GAME COMPONENTS

@@ -4,6 +4,38 @@
 		"selected_items":
 		[
 			[
+				"is",
+				"isCarryable"
+			],
+			[
+				"collec",
+				"collectedItems"
+			],
+			[
+				"VALIG",
+				"VALIGN_LEFT"
+			],
+			[
+				"HALIGN",
+				"HALIGN_LEFT"
+			],
+			[
+				"m_ca",
+				"m_cachedTextWidth"
+			],
+			[
+				"GameO",
+				"GameObject"
+			],
+			[
+				"get",
+				"getCell"
+			],
+			[
+				"pointer",
+				"pointerGY"
+			],
+			[
 				"Game",
 				"GameObject"
 			],
@@ -64,16 +96,8 @@
 				"break"
 			],
 			[
-				"pointer",
-				"pointerGX"
-			],
-			[
 				"goal",
 				"goalGY"
-			],
-			[
-				"GameO",
-				"GameObjectManager"
 			],
 			[
 				"pare",
@@ -283,7 +307,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 35616,
+				"buffer_size": 37769,
 				"line_ending": "Windows"
 			}
 		},
@@ -291,7 +315,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 22187,
+				"buffer_size": 25041,
 				"line_ending": "Windows"
 			}
 		},
@@ -356,7 +380,7 @@
 	],
 	"find":
 	{
-		"height": 35.0
+		"height": 37.0
 	},
 	"find_in_files":
 	{
@@ -370,6 +394,30 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"onTaken",
+			"placeItem",
+			"placeITe",
+			"putDown",
+			"warn",
+			"onTaken",
+			"addGob",
+			"if(!item",
+			"taken",
+			"onTaken",
+			"isPickable",
+			"isCarryable",
+			"TextSprite",
+			"32",
+			"isPlaceable",
+			"placed",
+			"nwPut",
+			".W",
+			"nwPutDown",
+			"createItem",
+			"iswalk",
+			"nwPutDown",
+			"owner",
+			"Collection",
 			"carriedItem",
 			"isCarry",
 			"draw",
@@ -473,31 +521,7 @@
 			"heuristicCostEstimate",
 			"MinHeap",
 			"playerID",
-			"RemoveScreen",
-			"gamenet",
-			"netob",
-			"pingLast",
-			"ping",
-			"error",
-			"close",
-			"this.pingLast",
-			"CreateConnectScreen",
-			"GameNet",
-			"m_netComponents",
-			"pingLast",
-			"pingRate",
-			"Player(",
-			"onRecv",
-			"NetComp",
-			"NetComp\n\nNetComp",
-			"instanceof",
-			"d",
-			"evt",
-			"playerID",
-			".peer",
-			"playerGob",
-			"netID",
-			"Netcomp"
+			"RemoveScreen"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -560,15 +584,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 35616,
+						"buffer_size": 37769,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								13267,
-								13271
+								14729,
+								14729
 							]
 						],
 						"settings":
@@ -667,7 +691,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 6644.0,
+						"translation.y": 6986.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -677,15 +701,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 22187,
+						"buffer_size": 25041,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								8419,
-								8419
+								21034,
+								21034
 							]
 						],
 						"settings":
@@ -783,7 +807,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 5551.0,
+						"translation.y": 14393.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
