@@ -67,7 +67,7 @@ function CreateConnectScreen()
         "Grab a peer to start",
         ' \
 Your ID: <input type="text" id="pid" placeholder="connecting..." readonly><br> \
-Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+Connect to: <input type="text" id="rid" placeholder="Other\'s id"><br> \
 <input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
         '
     );
@@ -98,7 +98,18 @@ function CreateGameUIScreen()
     return contentNode;
 }
 
-SwapScreen(CreateGameUIScreen());
+function CreateGameOverScreen()
+{
+    var contentNode = CreateDialog("GameOverScreen",
+        "Game Over",
+        ' \
+<input class="button" type="button" value="DIVE AGAIN?" id="retry" onclick="onClickRetry()"> \
+        '
+    );
+    return contentNode;
+}
+
+SwapScreen(CreateGameOverScreen());
 
 </script>
 

@@ -345,6 +345,10 @@ Component.prototype = {
 Component.prototype.update = function()
 {   //do nothing
 };
+Component.prototype.destroy = function()
+{
+    this.m_gob = null;
+};
 
 /*********************************
 * GAME OBJECT 
@@ -396,6 +400,23 @@ GameObject.prototype = {
 
     get parent() { return this.m_parent; },
     set parent(value) { this.m_parent = value; },
+};
+
+GameObject.prototype.destroy= function()
+{
+    this.transform = null;
+    this.visible = false;
+    for(var i in this.m_components)
+    {
+        this.m_components[i].destroy();
+        delete this.m_components[i];
+    }
+    this.m_components = null;
+
+    for(var j=this.m_children.length-1; j>=0; j--)
+        this.removeChild(m_children[j]);
+
+    this.removeParent();
 };
 
 GameObject.prototype.vxy = function(vx_ , vy_)
@@ -541,6 +562,15 @@ GameObjectManager.prototype.removeGob = function(gobName)
         return true;
     }
     return false;
+};
+GameObjectManager.prototype.clear = function()
+{
+    for(var i in this.m_gobs)
+    {
+        delete this.m_gobs[i];
+    }
+    this.m_gobs = {};
+    this.m_gobsLen = 0;
 };
 GameObjectManager.prototype.update = function()
 {
@@ -765,7 +795,13 @@ function BarComp(min, max, init, slideRate)
 BarComp.prototype = Object.create( Component.prototype );
 Object.defineProperty(BarComp.prototype, "value", {
     get: function() { return this.m_value; },
-    set: function(v) { this.m_value = this.clamp(v); },
+    set: function(v) {
+        this.m_value = this.clamp(v);
+        if(this.m_value === this.min)
+            this.onMin();
+        if(this.m_value === this.max)
+            this.onMax();
+    },
 });
 Object.defineProperty(BarComp.prototype, "min", {
     get: function() { return this.m_min; },
@@ -793,11 +829,11 @@ BarComp.prototype.clamp = function(amount)
 };
 BarComp.prototype.add = function(amount)
 {
-    this.m_value = this.clamp(this.m_value + amount);
+    this.value = this.clamp(this.m_value + amount);
 };
 BarComp.prototype.sub = function(amount)
 {
-    this.m_value = this.clamp(this.m_value - amount);
+    this.value = this.clamp(this.m_value - amount);
 };
 BarComp.prototype.onMin = function()
 {   // do nothing; to override
@@ -816,7 +852,6 @@ BarComp.prototype.update = function()
         if(this.m_slideValue < this.m_value)
         {
             this.m_slideValue = this.m_value;
-            this.onMin();
         }
     }
     else if(this.m_slideValue < this.m_value)
@@ -825,7 +860,6 @@ BarComp.prototype.update = function()
         if(this.m_slideValue > this.m_value)
         {
             this.m_slideValue = this.m_value;
-            this.onMax();
         }
     }
 };
@@ -908,6 +942,27 @@ Grid.prototype.removeFromCell = function(gx, gy, obj)
         }
         prevObj = prevObj.next;
         otherObj = prevObj.next;
+    }
+};
+Grid.prototype.clear = function()
+{
+    for(var gx = 0; gx < this.m_nx; gx++)
+    {
+        for(var gy = 0; gy < this.m_ny; gy++)
+        {
+            var obj = this.m_cells[gx][gy];
+            if(obj !== null)
+            {
+                var nextObj= obj.next;
+                while(nextObj !== null)
+                {
+                    obj.next = null;
+                    obj = nextObj;
+                    nextObj = nextObj.next;
+                }
+                this.m_cells[gx][gy]= null;
+            }
+        }
     }
 };
 Grid.prototype.isWithinBounds = function(gx, gy)

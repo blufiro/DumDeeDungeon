@@ -311,7 +311,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 26129,
+				"buffer_size": 26153,
 				"line_ending": "Windows"
 			}
 		},
@@ -327,7 +327,7 @@
 			"file": "main.css",
 			"settings":
 			{
-				"buffer_size": 1633,
+				"buffer_size": 1649,
 				"line_ending": "Unix"
 			}
 		}
@@ -390,6 +390,7 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"pointerEv",
 			"m_slideValue",
 			"m_slidingValue",
 			"removes",
@@ -516,8 +517,7 @@
 			"pingRate",
 			"Player(",
 			"onRecv",
-			"NetComp",
-			"NetComp\n\nNetComp"
+			"NetComp"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -688,7 +688,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 1.0,
-						"translation.y": 11800.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -698,15 +698,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 26129,
+						"buffer_size": 26153,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								24680,
-								24680
+								15125,
+								15125
 							]
 						],
 						"settings":
@@ -804,7 +804,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 16295.0,
+						"translation.y": 10393.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -821,8 +821,8 @@
 						"selection":
 						[
 							[
-								2591,
-								2190
+								1414,
+								1509
 							]
 						],
 						"settings":
@@ -921,7 +921,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 794.0,
+						"translation.y": 333.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -931,15 +931,15 @@
 					"file": "main.css",
 					"settings":
 					{
-						"buffer_size": 1633,
+						"buffer_size": 1649,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1631,
-								1631
+								1283,
+								1283
 							]
 						],
 						"settings":
@@ -1037,7 +1037,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 644.0,
+						"translation.y": 679.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

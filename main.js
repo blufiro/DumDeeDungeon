@@ -10,14 +10,16 @@ var player1Gob;
 var player2Gob;
 var gridOb;
 var netOb;
+var gameState = "INIT"; //"START", "RUNNING", "OVER", "SCORE"
 var intervalID;
 var showDebugInfo = true;
+var oxyNodes = [];
 var NUM_COLLECTION = 2;
 var NUM_HOLES = 15;
 var MAX_TREASURE_SIZE = 3;
 var MAX_COLLECTED_ITEMS = 5;
 var WALK_SPEED = 1;
-var OXYGEN_INIT = 30000;
+var OXYGEN_INIT = 3000;
 var OXYGEN_MAX = 60000;
 var OXYGEN_DEDUCTRATE = 1000 / 60;
 var OXYGEN_SLIDERATE = 5;
@@ -86,12 +88,9 @@ function init()
 	// gobMan.addGob("bgGob", bgGob);
 	rootGob.addChild(bgGob);
 	
-	player1Gob = gobMan.addGob("player1Gob", new Player(1));
-	player2Gob = gobMan.addGob("player2Gob", new Player(2));
+	player1Gob = new Player(1);
+	player2Gob = new Player(2);
 
-	rootGob.addChild(player1Gob);
-	rootGob.addChild(player2Gob);
-	
 	intervalID = setInterval(mainloop, 1000.0/60.0);
 
 	resizeGame();
@@ -101,12 +100,79 @@ function init()
 	SwapScreen(CreateConnectScreen());
 }
 
+// this function is called by the server the every time the game begins
+function gameStart()
+{
+	gobMan.clear();
+	gridOb.clear();
+
+	gobMan.addGob("player1Gob", player1Gob);
+	gobMan.addGob("player2Gob", player2Gob);
+
+	gameState = "START";
+
+	// tell client to clear their map
+	var netComp = player1Gob.getComponent("NetComp");
+
+	if(netOb.isServer)
+	{
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "gs", // game start
+				}
+			);
+		}
+		else
+		{
+			console.warn("generating map without connection");
+			//this could happen if we are using cheats
+			generateMap();
+		}
+	}
+	else
+	{
+		// reply to server that game is ready to be started
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "gm", // generate map
+				});
+		}
+	}
+	// generate Map will be called once we receive a reply from client
+}
+
+function gameReset()
+{
+	if(netOb.isServer)
+	{
+		gameStart();
+	}
+	else
+	{
+		// tell server to restart
+		var netComp = player1Gob.getComponent("NetComp");
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "gs", // game start
+				}
+			);
+		}
+	}
+}
+
 function generateMap()
 {
 	if(netOb.isServer)
 	{
-		var item;
 		var netComp = player1Gob.getComponent("NetComp");
+		
+		var item;
 		var gx;
 		var gy;
 		var treasuresCountObj = {};
@@ -304,8 +370,18 @@ function generateMap()
 					);
 				}
 			}
-		}
-	}
+		}// end for treasures
+
+		// spawn players
+		player1Gob.nwSpawn(randInt(0, gridOb.nx-1), randInt(0, gridOb.ny-1));
+		do
+		{
+			gx = randInt(0, gridOb.nx-1);
+			gy = randInt(0, gridOb.ny-1);
+		}while(gx === player1Gob.gx && gy === player1Gob.gy);
+		player2Gob.nwSpawn(gx, gy);
+
+	}// if server
 }//end generateMap()
 
 function mainloop()
@@ -328,6 +404,13 @@ function update()
 	fpsUpdate();
 	gobMan.update();
 	netOb.update();
+
+	//egc
+	if(gameState === "OVER")
+	{
+		SwapScreen(CreateGameOverScreen());
+		gameState = "SCORE";
+	}
 }
 
 function draw()
@@ -395,7 +478,7 @@ function cheatsUpdate()
 		SwapScreen(CreateGameUIScreen());
 		netOb.playerID = 1;
 		netOb.isServer = true;
-		generateMap();
+		gameStart();
 	}
 }
 
@@ -422,11 +505,12 @@ function Player(playerID_)
 	this.addComponent( "NetComp", new NetComp(netOb, "player"+this.playerID, this.onRecv.bind(this)) );
 
 	var oxygenBarComp = new BarComp(0, OXYGEN_MAX, OXYGEN_INIT, OXYGEN_SLIDERATE);
-	oxygenBarComp.onMin = this.die;
+	oxygenBarComp.onMin = this.die.bind(this);
 	this.addComponent( "OxygenBarComp", oxygenBarComp);
 
 	this.isFallen = false;
 	this.carriedItem = null;
+	this.isDead = true;
 }
 
 // Inheritance
@@ -517,23 +601,35 @@ Player.prototype.putDown = function(itemObj, gx_, gy_)
 	}
 };
 
-Player.prototype.die = function()
+Player.prototype.spawn = function(gx_, gy_)
 {
+	this.isDead = false;
+
+	this.gx = gx_;
+	this.gy = gy_;
+
+	this.x = gridOb.toX(this.gx);
+	this.y = gridOb.toY(this.gy);
+
+	rootGob.addChild(this);
+
+	// might get called twice
+	gameState = "RUNNING";
+};
+
+Player.prototype.die = function(x_,y_)
+{
+	this.x = x_;
+	this.y = y_;
+
 	// stop moving
 	this.getComponent("AIWalkerComp").stopWalk();
 
-	// send this over
-	var netComp = this.getComponent("NetComp");
-	if(netComp && netOb.isConnected)
-	{
-		netOb.send(netComp,
-			{
-				"cmd": "di",
-				"x": this.x,
-				"y": this.y,
-			}
-		);
-	}
+	this.isDead = true;
+	rootGob.removeChild(this);
+
+	// might get called twice
+	gameState = "OVER";
 };
 
 Player.prototype.nwRouteTo = function(newTargetGX, newTargetGY)
@@ -689,15 +785,58 @@ Player.prototype.nwPutDown = function(itemObj, gx_, gy_)
 	}// end else netOb.isServer
 };//end nwPutDown()
 
+Player.prototype.nwSpawn = function(gx_, gy_)
+{
+	// server gets to cheat
+	if(netOb.isServer)
+	{
+		this.spawn(gx_, gy_);
+
+		// send this over
+		var netComp = this.getComponent("NetComp");
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "ps",
+					"gx": this.gx,
+					"gy": this.gy,
+				}
+			);
+		}
+	}
+};
+
+Player.prototype.nwDie = function()
+{
+	this.die(this.x, this.y);
+
+	// send this over
+	var netComp = this.getComponent("NetComp");
+	if(netComp && netOb.isConnected)
+	{
+		netOb.send(netComp,
+			{
+				"cmd": "pd",
+				"x": this.x, // use pixel coord instead of grid cell
+				"y": this.y,
+			}
+		);
+	}
+};
+
 // override
 Player.prototype.update = function()
 {
 	GameObject.prototype.update.call(this);
 
+	if(this.isDead)
+		return;
+
 	var oxygenBarComp = this.getComponent("OxygenBarComp");
 
 	oxygenBarComp.sub(OXYGEN_DEDUCTRATE);
-	var oxyUI = document.getElementById("p"+this.playerID+"_oxy");
+	var oxyUI = oxyNodes[this.playerID-1];
 	if(oxyUI)
 		oxyUI.innerHTML = oxygenBarComp.slideValue;
 
@@ -882,6 +1021,26 @@ Player.prototype.onRecv = function(data)
 			}
 		}
 		break;
+		case "ps":
+		{
+			this.spawn(data.gx, data.gy);
+		}
+		break;
+		case "pd":
+		{
+			this.die(data.x, data.y);
+		}
+		break;
+		case "gs":
+		{
+			gameStart();
+		}
+		break;
+		case "gm":
+		{
+			generateMap();
+		}
+		break;
 	}//end switch
 };
 
@@ -944,6 +1103,8 @@ Item.prototype.destroy = function()
 		console.warn("did not destroy item", this.id);
 	else
 		console.log('destroy  item', this.id);
+
+	GameObject.prototype.destroy.call(this);
 };
 Item.prototype.taken = function(playerID_)
 {
@@ -1049,7 +1210,6 @@ function RemoveScreen()
 	if(ui.firstChild)
 	{
 		ui.removeChild(ui.firstChild);
-		ui.style.pointerEvents = "none";
 	}
 }
 function SwapScreen(newScreen)
@@ -1058,7 +1218,6 @@ function SwapScreen(newScreen)
 	if (newScreen)
 	{
 		ui.appendChild( newScreen );
-		ui.style.pointerEvents = "auto";
 	}
 }
 function CreateDialog(dialogID, headHTML, bodyHTML)
@@ -1087,6 +1246,9 @@ function CreateDialog(dialogID, headHTML, bodyHTML)
     bodyNode.innerHTML = bodyHTML;
     contentWrapper.appendChild(bodyNode);
 
+    // allow pointer events to receive input for new screen
+    nodeX.style.pointerEvents = "auto";
+
 	return nodeX;
 }
 
@@ -1096,7 +1258,7 @@ function CreateConnectScreen()
 		"Grab a peer to start",
 		' \
 Your ID: <input type="text" id="peerID" class="peerID" placeholder="connecting..." readonly><br> \
-Connect to: <input type="text" id="rid" placeholder="Other\'s id"> \
+Connect to: <input type="text" id="rid" placeholder="Other\'s id"><br> \
 <input class="button" type="button" value="Connect" id="connect" onclick="onClickConnect()"> \
 		'
 	);
@@ -1120,14 +1282,23 @@ function CreateGameUIScreen()
     contentNode.className = "containerGameUI";
 
     contentNode.innerHTML = ' \
-<div class="p1_ui">oxygen: <span id="p1_oxy" class="oxytext">999999</span></div> \
-<div class="p2_ui">oxygen: <span id="p2_oxy" class="oxytext">999999</span></div> \
+<div id="p1_ui" class="p1_ui">oxygen: <span id="p1_oxy" class="oxytext">999999</span></div> \
+<div id="p2_ui" class="p2_ui">oxygen: <span id="p2_oxy" class="oxytext">999999</span></div> \
     ';
-    contentNode.style.pointerEvents = "none";
-    ui.style.pointerEvents = "none";
 
-    console.warn("tofix pointer events on ui");
+    oxyNodes[0] = contentNode.children.namedItem("p1_ui").children.namedItem("p1_oxy");
+    oxyNodes[1] = contentNode.children.namedItem("p2_ui").children.namedItem("p2_oxy");
 
+    return contentNode;
+}
+function CreateGameOverScreen()
+{
+    var contentNode = CreateDialog("GameOverScreen",
+        "Game Over",
+        ' \
+<input class="button" type="button" value="DIVE AGAIN?" id="retry" onclick="gameReset()"> \
+        '
+    );
     return contentNode;
 }
 
@@ -1181,17 +1352,13 @@ GameNet.prototype.onConnOpen = function()
 {
 	Net.prototype.onConnOpen.call(this);
 
-	// game sync and start
+	// game sync and start (only server will gen)
 	if(this.isServer)
-	{
-		generateMap();
-	}
+		gameStart();
 };
 GameNet.prototype.onMessage = function(evt)
 {
 	Net.prototype.onMessage.call(this, evt);
-
-
 };
 // GameNet.prototype.onTimeout = function()
 // {

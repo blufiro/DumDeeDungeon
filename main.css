@@ -63,6 +63,60 @@ div.dialogBody
 	font-size:18px;
 	color: #8be7e6;
 }
+.button
+{
+	/*
+	00181f
+	2c444a
+	3a5157
+	496066
+	657a80
+	91a5ab
+	*/
+	display: block;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px 35px;
+    margin: 20px auto;
+    color: #ccc;
+    background-color: #2c444a;
+    background: linear-gradient(#496066, #2c444a);
+    border: 0 none;
+    border-radius: 3px;
+    text-shadow: 0 -1px 0 #000;
+    box-shadow: 0 1px 0 #3a5157, 0 5px 0 #00181f, 0 6px 6px rgba(0,0,0,0.6);
+    cursor: pointer;
+    transition: all 100ms ease;
+}
+.button:hover, .button:focus
+{
+	/*chrome & safari*/
+    -webkit-animation: pulsate 1.2s linear infinite;
+    /* moz & ie */
+    animation: pulsate 1.2s linear infinite;
+}
+@-webkit-keyframes pulsate
+{
+    0%   { color: #ddd; text-shadow: 0 -1px 0 #000; }
+    50%  { color: #fff; text-shadow: 0 -1px 0 #444, 0 0 5px #ffd, 0 0 8px #fff; }
+    100% { color: #ddd; text-shadow: 0 -1px 0 #000; }
+}
+@keyframes pulsate
+{
+    0%   { color: #ddd; text-shadow: 0 -1px 0 #000; }
+    50%  { color: #fff; text-shadow: 0 -1px 0 #444, 0 0 5px #ffd, 0 0 8px #fff; }
+    100% { color: #ddd; text-shadow: 0 -1px 0 #000; }
+}
+.button:active
+{
+    color: #fff;
+    text-shadow: 0 -1px 0 #444, 0 0 5px #ffd, 0 0 8px #fff;
+    box-shadow: 0 1px 0 #666, 0 2px 0 #444, 0 2px 2px rgba(0,0,0,0.9);
+    -webkit-transform: translateY(3px);
+    transform: translateY(3px);
+    -webkit-animation: none;
+    animation: none;
+}
 .peerID
 {
 	font-weight: bold;
@@ -71,6 +125,10 @@ div.dialogBody
 {
 	text-align: center;
 }
+.containerGameUI
+{
+	pointer-events: none;
+}
 div.p1_ui
 {
 	float: left;
@@ -78,7 +136,7 @@ div.p1_ui
 	margin: 10px;
 	font-family: "Verdana", sans-serif;
 	font-size: 12px;
-	color: rgba(89,169,158, 0.8);
+	color: #00181f;
 	pointer-events: none;
 }
 div.p2_ui
@@ -88,7 +146,7 @@ div.p2_ui
 	margin: 10px;
 	font-family: "Verdana", sans-serif;
 	font-size: 12px;
-	color: rgba(89,169,158, 0.8);
+	color: #00181f;
 	pointer-events: none;
 }
 .oxytext
