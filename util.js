@@ -219,6 +219,10 @@ function registerInputEvents(canvas, preventScrolling)
     canvas.addEventListener("touchend", Input.touchEnd.bind(Input), false);
     document.body.addEventListener("touchcancel", Input.touchEnd.bind(Input), false);
 
+    // disable text selection or I-beam cursor
+    canvas.onselectstart = function() { return false; }; // ie, chrome
+    canvas.onmousedown = function () { return false; }; // mozilla
+
     // prevent scrolling
     if(preventScrolling)
     {
@@ -286,13 +290,15 @@ function TextSprite(font, size, color, str, hAlign)//, vAlign)
     this.m_text = str;
     this.m_hAlign = defaultFor(hAlign, "left");
     // this.m_vAlign = defaultFor(vAlign, VALIGN_BOTTOM);
+
+    this.m_cachedFont = null;
 }
 
 TextSprite.prototype = {
     get font() { return this.m_font; },
-    set font(value){ this.m_font = value; },
+    set font(value){ this.m_font = value; this.m_cachedFont = null; },
     get size()  { return this.m_size; },
-    set size(value) { this.m_size = value; },
+    set size(value) { this.m_size = value; this.m_cachedFont = null; },
     get color() { return this.m_color; },
     set color(value) { this.m_color = value; },
     get text() { return this.m_text; },
@@ -305,7 +311,9 @@ TextSprite.prototype = {
 
 TextSprite.prototype.draw = function(ctx)
 {
-    ctx.font = this.m_size+"px "+this.m_font;
+    if(this.m_cachedFont === null)
+        this.m_cachedFont = this.m_size+"px "+this.m_font;
+    ctx.font = this.m_cachedFont;
     ctx.fillStyle = this.m_color;
     ctx.textAlign = this.m_hAlign;
 
@@ -739,6 +747,88 @@ NetComp.prototype.onRecv = function(data)
     return false;
 };
 
+function BarComp(min, max, init, slideRate)
+{
+    Component.call(this);
+
+    this.m_min = min;
+    this.m_max = max;
+
+    if(init < this.m_min || init > this.m_max)
+        throw "Init value ("+init+")is not within range! ["+min+", "+max+"]";
+
+    this.m_initValue = init;
+    this.m_value = this.m_initValue;
+    this.m_slideValue = this.m_value;
+    this.m_slideRate = slideRate;
+}
+BarComp.prototype = Object.create( Component.prototype );
+Object.defineProperty(BarComp.prototype, "value", {
+    get: function() { return this.m_value; },
+    set: function(v) { this.m_value = this.clamp(v); },
+});
+Object.defineProperty(BarComp.prototype, "min", {
+    get: function() { return this.m_min; },
+    set: function(value) { this.m_min = value; },
+});
+Object.defineProperty(BarComp.prototype, "max", {
+    get: function() { return this.m_max; },
+    set: function(value) { this.m_max = value; },
+});
+Object.defineProperty(BarComp.prototype, "slideValue", {
+    get: function() { return this.m_slideValue; },
+    set: function(value) { this.m_slideValue = value; },
+});
+Object.defineProperty(BarComp.prototype, "slideRate", {
+    get: function() { return this.m_slideRate; },
+    set: function(value) { this.m_slideRate = value; },
+});
+BarComp.prototype.clamp = function(amount)
+{
+    if(amount < this.m_min)
+        amount = this.m_min;
+    if(amount > this.m_max)
+        amount = this.m_max;
+    return amount;
+};
+BarComp.prototype.add = function(amount)
+{
+    this.m_value = this.clamp(this.m_value + amount);
+};
+BarComp.prototype.sub = function(amount)
+{
+    this.m_value = this.clamp(this.m_value - amount);
+};
+BarComp.prototype.onMin = function()
+{   // do nothing; to override
+};
+BarComp.prototype.onMax = function()
+{   // do nothing; to override
+};
+BarComp.prototype.update = function()
+{
+    Component.prototype.update.call(this);
+
+    // sliding
+    if(this.m_slideValue > this.m_value)
+    {
+        this.m_slideValue -= this.m_slideRate;
+        if(this.m_slideValue < this.m_value)
+        {
+            this.m_slideValue = this.m_value;
+            this.onMin();
+        }
+    }
+    else if(this.m_slideValue < this.m_value)
+    {
+        this.m_slideValue += this.m_slideRate;
+        if(this.m_slideValue > this.m_value)
+        {
+            this.m_slideValue = this.m_value;
+            this.onMax();
+        }
+    }
+};
 /*********************************
 * GRID 
 *********************************/

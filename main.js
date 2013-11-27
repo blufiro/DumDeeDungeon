@@ -16,6 +16,11 @@ var NUM_COLLECTION = 2;
 var NUM_HOLES = 15;
 var MAX_TREASURE_SIZE = 3;
 var MAX_COLLECTED_ITEMS = 5;
+var WALK_SPEED = 1;
+var OXYGEN_INIT = 30000;
+var OXYGEN_MAX = 60000;
+var OXYGEN_DEDUCTRATE = 1000 / 60;
+var OXYGEN_SLIDERATE = 5;
 
 function main(onErrorFunc_)
 {
@@ -301,7 +306,7 @@ function generateMap()
 			}
 		}
 	}
-}
+}//end generateMap()
 
 function mainloop()
 {
@@ -387,7 +392,7 @@ function cheatsUpdate()
 	// force remove screen and set playerID
 	if(netOb.playerID === 0 && Input.keys[Keys.A] && Input.keys[Keys.P])
 	{
-		RemoveScreen();
+		SwapScreen(CreateGameUIScreen());
 		netOb.playerID = 1;
 		netOb.isServer = true;
 		generateMap();
@@ -413,8 +418,12 @@ function Player(playerID_)
 	this.targetGX = this.gx;
 	this.targetGY = this.gy;
 	
-	this.addComponent( "AIWalkerComp", new AIWalkerComp(gridOb, 2) );
+	this.addComponent( "AIWalkerComp", new AIWalkerComp(gridOb, WALK_SPEED) );
 	this.addComponent( "NetComp", new NetComp(netOb, "player"+this.playerID, this.onRecv.bind(this)) );
+
+	var oxygenBarComp = new BarComp(0, OXYGEN_MAX, OXYGEN_INIT, OXYGEN_SLIDERATE);
+	oxygenBarComp.onMin = this.die;
+	this.addComponent( "OxygenBarComp", oxygenBarComp);
 
 	this.isFallen = false;
 	this.carriedItem = null;
@@ -505,6 +514,25 @@ Player.prototype.putDown = function(itemObj, gx_, gy_)
 	else
 	{
 		itemObj.placed(this.playerID, gx_, gy_);
+	}
+};
+
+Player.prototype.die = function()
+{
+	// stop moving
+	this.getComponent("AIWalkerComp").stopWalk();
+
+	// send this over
+	var netComp = this.getComponent("NetComp");
+	if(netComp && netOb.isConnected)
+	{
+		netOb.send(netComp,
+			{
+				"cmd": "di",
+				"x": this.x,
+				"y": this.y,
+			}
+		);
 	}
 };
 
@@ -665,28 +693,13 @@ Player.prototype.nwPutDown = function(itemObj, gx_, gy_)
 Player.prototype.update = function()
 {
 	GameObject.prototype.update.call(this);
-	
-	// if(this.x > w)
-	// {
-	// 	this.x = 0;
-	// }
 
-	// if(Input.keys[Keys.LEFT_ARROW])
-	// {
-	// 	this.x -= 5;
-	// }
-	// else if(Input.keys[Keys.RIGHT_ARROW])
-	// {
-	// 	this.x += 5;
-	// }
-	// if(Input.keys[Keys.UP_ARROW])
-	// {
-	// 	this.y -= 5;
-	// }
-	// else if(Input.keys[Keys.DOWN_ARROW])
-	// {
-	// 	this.y += 5;
-	// }
+	var oxygenBarComp = this.getComponent("OxygenBarComp");
+
+	oxygenBarComp.sub(OXYGEN_DEDUCTRATE);
+	var oxyUI = document.getElementById("p"+this.playerID+"_oxy");
+	if(oxyUI)
+		oxyUI.innerHTML = oxygenBarComp.slideValue;
 
 	// handle input only if same id as netOb
 	if(netOb.playerID !== this.playerID)
@@ -989,7 +1002,7 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 			{
 				// donot destroy, just remove from grid
 				this.removeFromGrid();
-			}
+			};
 		}
 		break;
 		case "colc":
@@ -1100,6 +1113,24 @@ Please reload. \
     );
     return contentNode;
 }
+function CreateGameUIScreen()
+{
+    var contentNode = document.createElement('div');
+    contentNode.id = "GameUIScreen";
+    contentNode.className = "containerGameUI";
+
+    contentNode.innerHTML = ' \
+<div class="p1_ui">oxygen: <span id="p1_oxy" class="oxytext">999999</span></div> \
+<div class="p2_ui">oxygen: <span id="p2_oxy" class="oxytext">999999</span></div> \
+    ';
+    contentNode.style.pointerEvents = "none";
+    ui.style.pointerEvents = "none";
+
+    console.warn("tofix pointer events on ui");
+
+    return contentNode;
+}
+
 function onClickConnect()
 {
 	var otherPeerID = document.getElementById("rid").value;
@@ -1144,7 +1175,7 @@ GameNet.prototype.onConnect = function(conn)
 	console.log("This is player "+this.playerID);
 
 	// remove connect screen
-	RemoveScreen();
+	SwapScreen(CreateGameUIScreen());
 };
 GameNet.prototype.onConnOpen = function()
 {

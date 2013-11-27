@@ -17,7 +17,8 @@ function RemoveScreen()
     if(ui.firstChild)
     {
         ui.removeChild(ui.firstChild);
-        ui.style.pointerEvents = "none";
+        // // disallow pointer events on game images & text
+        // ui.style.pointerEvents = "none";
     }
 }
 function SwapScreen(newScreen)
@@ -26,7 +27,6 @@ function SwapScreen(newScreen)
     if (newScreen)
     {
         ui.appendChild( newScreen );
-        ui.style.pointerEvents = "auto";
     }
 }
 function CreateDialog(dialogID, headHTML, bodyHTML)
@@ -55,6 +55,9 @@ function CreateDialog(dialogID, headHTML, bodyHTML)
     bodyNode.innerHTML = bodyHTML;
     contentWrapper.appendChild(bodyNode);
 
+    // allow pointer events to receive input for new screen
+    nodeX.style.pointerEvents = "auto";
+
     return nodeX;
 }
 
@@ -81,8 +84,21 @@ Please reload. \
     );
     return contentNode;
 }
+function CreateGameUIScreen()
+{
+    var contentNode = document.createElement('div');
+    contentNode.id = "GameUIScreen";
+    contentNode.className = "containerGameUI";
 
-SwapScreen(CreateDisconnectedScreen());
+    contentNode.innerHTML = ' \
+<div class="p1_ui">oxygen: <span id="p1_oxy" class="oxytext">999999</span></div> \
+<div class="p2_ui">oxygen: <span id="p2_oxy" class="oxytext">999999</span></div> \
+    ';
+
+    return contentNode;
+}
+
+SwapScreen(CreateGameUIScreen());
 
 </script>
 

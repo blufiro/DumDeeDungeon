@@ -47,6 +47,7 @@ div.dialog
 	background: rgba(63, 89 ,99, 0.8);
 	border-radius: 16px 16px 16px 16px;
 	border: 3px solid rgba(89,169,158, 0.8);
+	box-shadow: 0px 5px 3px #00181f;
 }
 div.dialogHead
 {
@@ -69,4 +70,29 @@ div.dialogBody
 .centertext
 {
 	text-align: center;
+}
+div.p1_ui
+{
+	float: left;
+	width: 110px;
+	margin: 10px;
+	font-family: "Verdana", sans-serif;
+	font-size: 12px;
+	color: rgba(89,169,158, 0.8);
+	pointer-events: none;
+}
+div.p2_ui
+{
+	float: right;
+	width: 110px;
+	margin: 10px;
+	font-family: "Verdana", sans-serif;
+	font-size: 12px;
+	color: rgba(89,169,158, 0.8);
+	pointer-events: none;
+}
+.oxytext
+{
+	font-weight: bold;
+	pointer-events: none;
 }

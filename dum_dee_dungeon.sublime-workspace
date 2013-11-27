@@ -4,36 +4,28 @@
 		"selected_items":
 		[
 			[
-				"is",
-				"isCarryable"
-			],
-			[
-				"collec",
-				"collectedItems"
-			],
-			[
-				"VALIG",
-				"VALIGN_LEFT"
-			],
-			[
-				"HALIGN",
-				"HALIGN_LEFT"
-			],
-			[
-				"m_ca",
-				"m_cachedTextWidth"
-			],
-			[
-				"GameO",
-				"GameObject"
-			],
-			[
-				"get",
-				"getCell"
-			],
-			[
 				"pointer",
-				"pointerGY"
+				"pointerEvents"
+			],
+			[
+				"Cre",
+				"CreateGameUIScreen"
+			],
+			[
+				"p1",
+				"player1Node"
+			],
+			[
+				"con",
+				"contentNode"
+			],
+			[
+				"OXG",
+				"OXYGEN_INIT"
+			],
+			[
+				"OXYG",
+				"OXYGEN_MAX"
 			],
 			[
 				"Game",
@@ -98,6 +90,10 @@
 			[
 				"goal",
 				"goalGY"
+			],
+			[
+				"GameO",
+				"GameObjectManager"
 			],
 			[
 				"pare",
@@ -307,7 +303,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 37769,
+				"buffer_size": 40455,
 				"line_ending": "Windows"
 			}
 		},
@@ -315,7 +311,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 25041,
+				"buffer_size": 26129,
 				"line_ending": "Windows"
 			}
 		},
@@ -323,7 +319,7 @@
 			"file": "ui_tester.html",
 			"settings":
 			{
-				"buffer_size": 2136,
+				"buffer_size": 2655,
 				"line_ending": "Unix"
 			}
 		},
@@ -331,7 +327,7 @@
 			"file": "main.css",
 			"settings":
 			{
-				"buffer_size": 1208,
+				"buffer_size": 1633,
 				"line_ending": "Unix"
 			}
 		}
@@ -380,7 +376,7 @@
 	],
 	"find":
 	{
-		"height": 37.0
+		"height": 35.0
 	},
 	"find_in_files":
 	{
@@ -394,30 +390,14 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"onTaken",
-			"placeItem",
-			"placeITe",
-			"putDown",
-			"warn",
-			"onTaken",
-			"addGob",
-			"if(!item",
-			"taken",
-			"onTaken",
-			"isPickable",
-			"isCarryable",
-			"TextSprite",
-			"32",
-			"isPlaceable",
-			"placed",
-			"nwPut",
-			".W",
-			"nwPutDown",
-			"createItem",
-			"iswalk",
-			"nwPutDown",
-			"owner",
-			"Collection",
+			"m_slideValue",
+			"m_slidingValue",
+			"removes",
+			"swap",
+			"pointer-events",
+			"OXYGEN_SLIDERATE",
+			"Delta",
+			"Component",
 			"carriedItem",
 			"isCarry",
 			"draw",
@@ -521,7 +501,23 @@
 			"heuristicCostEstimate",
 			"MinHeap",
 			"playerID",
-			"RemoveScreen"
+			"RemoveScreen",
+			"gamenet",
+			"netob",
+			"pingLast",
+			"ping",
+			"error",
+			"close",
+			"this.pingLast",
+			"CreateConnectScreen",
+			"GameNet",
+			"m_netComponents",
+			"pingLast",
+			"pingRate",
+			"Player(",
+			"onRecv",
+			"NetComp",
+			"NetComp\n\nNetComp"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -529,6 +525,7 @@
 		"regex": true,
 		"replace_history":
 		[
+			"Rate",
 			"removeFromGrid",
 			"isRemovedAfterPickUp",
 			"peerID",
@@ -584,15 +581,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 37769,
+						"buffer_size": 40455,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								14729,
-								14729
+								22740,
+								22740
 							]
 						],
 						"settings":
@@ -690,8 +687,8 @@
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
-						"translation.x": 0.0,
-						"translation.y": 6986.0,
+						"translation.x": 1.0,
+						"translation.y": 11800.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -701,15 +698,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 25041,
+						"buffer_size": 26129,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								21034,
-								21034
+								24680,
+								24680
 							]
 						],
 						"settings":
@@ -807,7 +804,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 14393.0,
+						"translation.y": 16295.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -817,15 +814,15 @@
 					"file": "ui_tester.html",
 					"settings":
 					{
-						"buffer_size": 2136,
+						"buffer_size": 2655,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1270,
-								1270
+								2591,
+								2190
 							]
 						],
 						"settings":
@@ -924,7 +921,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 794.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -934,15 +931,15 @@
 					"file": "main.css",
 					"settings":
 					{
-						"buffer_size": 1208,
+						"buffer_size": 1633,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1141,
-								1147
+								1631,
+								1631
 							]
 						],
 						"settings":
@@ -1040,7 +1037,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 644.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
