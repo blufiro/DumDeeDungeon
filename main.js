@@ -19,10 +19,10 @@ var NUM_HOLES = 15;
 var MAX_TREASURE_SIZE = 3;
 var MAX_COLLECTED_ITEMS = 5;
 var WALK_SPEED = 1;
-var OXYGEN_INIT = 3000;
+var OXYGEN_INIT = 30000;
 var OXYGEN_MAX = 60000;
 var OXYGEN_DEDUCTRATE = 1000 / 60;
-var OXYGEN_SLIDERATE = 5;
+var OXYGEN_SLIDERATE = 100;
 
 function main(onErrorFunc_)
 {
@@ -80,7 +80,6 @@ function init()
 	
 	// root gob 
 	rootGob = new GameObject();
-	gobMan.addGob("rootGob", rootGob);
 
 	var bgGob = new GameObject();
 	bgGob.sprite = new ImageSprite( resources.images["bg"] );
@@ -103,11 +102,22 @@ function init()
 // this function is called by the server the every time the game begins
 function gameStart()
 {
+	console.log ("gameStart");
+	SwapScreen(CreateStartGameScreen());
+
+	// remove first as we do not want to delete these on reset
+	gobMan.removeGob("rootGob");
+	gobMan.removeGob("player1Gob");
+	gobMan.removeGob("player2Gob");
+
 	gobMan.clear();
 	gridOb.clear();
 
+	gobMan.addGob("rootGob", rootGob);
 	gobMan.addGob("player1Gob", player1Gob);
 	gobMan.addGob("player2Gob", player2Gob);
+	player1Gob.reset();
+	player2Gob.reset();
 
 	gameState = "START";
 
@@ -118,6 +128,7 @@ function gameStart()
 	{
 		if(netComp && netOb.isConnected)
 		{
+			console.log("server game start, sending 'gs'");
 			netOb.send(netComp,
 				{
 					"cmd": "gs", // game start
@@ -133,6 +144,8 @@ function gameStart()
 	}
 	else
 	{
+		console.log("client game start, replying with 'gm'");
+
 		// reply to server that game is ready to be started
 		if(netComp && netOb.isConnected)
 		{
@@ -147,12 +160,17 @@ function gameStart()
 
 function gameReset()
 {
+	console.log ("gameReset");
+
 	if(netOb.isServer)
 	{
+		console.log("server game reset");
 		gameStart();
 	}
 	else
 	{
+		console.log("client game reset, sending game start");
+
 		// tell server to restart
 		var netComp = player1Gob.getComponent("NetComp");
 		if(netComp && netOb.isConnected)
@@ -170,6 +188,8 @@ function generateMap()
 {
 	if(netOb.isServer)
 	{
+		console.log ("server gen map");
+
 		var netComp = player1Gob.getComponent("NetComp");
 		
 		var item;
@@ -191,7 +211,7 @@ function generateMap()
 		// spawn collection point
 		for(i=0; i<NUM_COLLECTION; i++)
 		{
-			gx = randInt(gridOb.nx/3, gridOb.ny*2/3);
+			gx = randInt(gridOb.nx/3, gridOb.nx*2/3);
 			gy = randInt(gridOb.ny/3, gridOb.ny*2/3);
 
 			// check if already spawned something
@@ -381,8 +401,42 @@ function generateMap()
 		}while(gx === player1Gob.gx && gy === player1Gob.gy);
 		player2Gob.nwSpawn(gx, gy);
 
+		// start game!
+		gameSetupDone();
+		
 	}// if server
 }//end generateMap()
+
+function gameSetupDone()
+{
+	if(netOb.isServer)
+	{
+		console.log ("server setup done");
+
+		gameState = "RUNNING";
+		SwapScreen(CreateGameUIScreen());
+
+		var netComp = player1Gob.getComponent("NetComp");
+		if(netComp && netOb.isConnected)
+		{
+			netOb.send(netComp,
+				{
+					"cmd": "gt", // game setup done
+				}
+			);
+		}
+	}
+}
+
+function endGameCond()
+{
+	if(gameState === "OVER")
+	{
+		console.log("game over!");
+		SwapScreen(CreateGameOverScreen());
+		gameState = "SCORE";
+	}
+}
 
 function mainloop()
 {
@@ -405,12 +459,7 @@ function update()
 	gobMan.update();
 	netOb.update();
 
-	//egc
-	if(gameState === "OVER")
-	{
-		SwapScreen(CreateGameOverScreen());
-		gameState = "SCORE";
-	}
+	endGameCond();
 }
 
 function draw()
@@ -603,22 +652,27 @@ Player.prototype.putDown = function(itemObj, gx_, gy_)
 
 Player.prototype.spawn = function(gx_, gy_)
 {
-	this.isDead = false;
-
 	this.gx = gx_;
 	this.gy = gy_;
 
 	this.x = gridOb.toX(this.gx);
 	this.y = gridOb.toY(this.gy);
 
+	this.targetGX = this.gx;
+	this.targetGY = this.gy;
+
+	this.isFallen = false;
+	this.carriedItem = null;
+	this.isDead = false;
+
 	rootGob.addChild(this);
 
-	// might get called twice
-	gameState = "RUNNING";
+	this.getComponent("AIWalkerComp").stopWalk();
 };
 
 Player.prototype.die = function(x_,y_)
 {
+	console.log ("player "+this.playerID+" died");
 	this.x = x_;
 	this.y = y_;
 
@@ -838,7 +892,7 @@ Player.prototype.update = function()
 	oxygenBarComp.sub(OXYGEN_DEDUCTRATE);
 	var oxyUI = oxyNodes[this.playerID-1];
 	if(oxyUI)
-		oxyUI.innerHTML = oxygenBarComp.slideValue;
+		oxyUI.innerHTML = Math.floor(oxygenBarComp.slideValue);
 
 	// handle input only if same id as netOb
 	if(netOb.playerID !== this.playerID)
@@ -949,7 +1003,7 @@ Player.prototype.onRecv = function(data)
 			if(item)
 			{
 				console.warn("Item already created!", data.iid, data.gx, data.gy, data.typ, data.rnk);
-				item.destroy();
+				item.kill();
 			}
 
 			// only create if not already existent
@@ -1041,6 +1095,12 @@ Player.prototype.onRecv = function(data)
 			generateMap();
 		}
 		break;
+		case "gt":
+		{
+			gameState = "RUNNING";
+			SwapScreen(CreateGameUIScreen());
+		}
+		break;
 	}//end switch
 };
 
@@ -1075,8 +1135,8 @@ function Item(type_, id_, gx_, gy_, rank_, img_)
 	gobMan.addGob( this.id, this);
 	this.addToGrid();
 
-	// set destroy as default action
-	this.onTaken = this.destroy;
+	// set kill as default action
+	this.onTaken = this.kill;
 	// set addToGrid as default action
 	this.onPlaced = this.addToGrid;
 }
@@ -1096,13 +1156,13 @@ Item.prototype.removeFromGrid = function()
 	// rm from rootGob
 	this.removeParent();
 };
-Item.prototype.destroy = function()
+Item.prototype.kill = function()
 {
 	this.removeFromGrid();
 	if(!gobMan.removeGob(this.id))
-		console.warn("did not destroy item", this.id);
+		console.warn("did not kill item", this.id);
 	else
-		console.log('destroy  item', this.id);
+		console.log('kill  item', this.id);
 
 	GameObject.prototype.destroy.call(this);
 };
@@ -1152,7 +1212,7 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 			{
 				var itemNum = parseInt(this.id.substring(4), 10);
 				CreateItem("gold", "gold"+itemNum, this.gx, this.gy, this.itemRank);
-				this.destroy();
+				this.kill();
 			};
 		}
 		break;
@@ -1161,7 +1221,7 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 			item = new Item(type_, id_, gx_, gy_, rank_);
 			item.onTaken = function()
 			{
-				// donot destroy, just remove from grid
+				// donot kill, just remove from grid
 				this.removeFromGrid();
 			};
 		}
@@ -1186,8 +1246,6 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 					console.log('raise');
 					// send this collection spot up
 					//this.raise();
-
-					// destroy the item
 				}
 			};
 			item.addChild( new TextGameObject(16,16,
@@ -1275,6 +1333,16 @@ Please reload. \
     );
     return contentNode;
 }
+function CreateStartGameScreen()
+{
+    var contentNode = CreateDialog("StartGameScreen",
+        "Starting Game",
+        ' \
+        Please wait... \
+        '
+    );
+    return contentNode;
+}
 function CreateGameUIScreen()
 {
     var contentNode = document.createElement('div');
@@ -1346,7 +1414,7 @@ GameNet.prototype.onConnect = function(conn)
 	console.log("This is player "+this.playerID);
 
 	// remove connect screen
-	SwapScreen(CreateGameUIScreen());
+	SwapScreen(CreateStartGameScreen());
 };
 GameNet.prototype.onConnOpen = function()
 {

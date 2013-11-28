@@ -349,6 +349,9 @@ Component.prototype.destroy = function()
 {
     this.m_gob = null;
 };
+Component.prototype.reset = function()
+{ // do nothing
+};
 
 /*********************************
 * GAME OBJECT 
@@ -414,9 +417,17 @@ GameObject.prototype.destroy= function()
     this.m_components = null;
 
     for(var j=this.m_children.length-1; j>=0; j--)
-        this.removeChild(m_children[j]);
+        this.removeChild(this.m_children[j]);
 
     this.removeParent();
+};
+
+GameObject.prototype.reset = function()
+{
+    for(var i in this.m_components)
+    {
+        this.m_components[i].reset();
+    }
 };
 
 GameObject.prototype.vxy = function(vx_ , vy_)
@@ -565,8 +576,14 @@ GameObjectManager.prototype.removeGob = function(gobName)
 };
 GameObjectManager.prototype.clear = function()
 {
+    var gob;
     for(var i in this.m_gobs)
     {
+        gob = this.m_gobs[i];
+        if(gob)
+        {
+            gob.destroy();
+        }
         delete this.m_gobs[i];
     }
     this.m_gobs = {};
@@ -612,7 +629,6 @@ function AIWalkerComp(gridOb, speed)
 {
     Component.call(this);
 
-    this.path = null;
     this.grid = gridOb;
     this.walkSpeed = speed;
 
@@ -665,6 +681,7 @@ AIWalkerComp.prototype.stopWalk = function()
     this.destX = -1;
     this.destY = -1;
     this.walkDir = DIRECTION_NONE;
+    this.path = null;
     if(this.gameObject)
         this.gameObject.speed = 0;
 };
@@ -862,6 +879,11 @@ BarComp.prototype.update = function()
             this.m_slideValue = this.m_value;
         }
     }
+};
+BarComp.prototype.reset = function()
+{
+    this.m_value = this.m_initValue;
+    this.m_slideValue = this.m_value;
 };
 /*********************************
 * GRID 
@@ -1366,7 +1388,7 @@ Net.prototype.send = function(netComp, dataObj)
     this.m_lastsent = toSend;
     this.m_connection.send(this.m_lastsent);
 
-    console.log("sent message: "+JSON.stringify(this.m_lastsent));
+    console.log("Sent: "+JSON.stringify(this.m_lastsent));
 };
 Net.prototype.onMessage = function(data)
 {
@@ -1399,7 +1421,7 @@ Net.prototype.onMessage = function(data)
 
     // pings do not affect component code
     this.m_lastrecv = data;
-    console.log( "Received Message: " + JSON.stringify(data));
+    console.log( "Recv: " + JSON.stringify(data));
 
     var netComp = this.m_netComponents[data.netID];
     if(netComp)

@@ -4,16 +4,32 @@
 		"selected_items":
 		[
 			[
+				"remove",
+				"removeGob"
+			],
+			[
+				"creaga",
+				"CreateGameOverScreen"
+			],
+			[
+				"gener",
+				"generateMap"
+			],
+			[
+				"Ga",
+				"GameObjectManager"
+			],
+			[
+				"p1",
+				"player1Gob"
+			],
+			[
 				"pointer",
 				"pointerEvents"
 			],
 			[
 				"Cre",
 				"CreateGameUIScreen"
-			],
-			[
-				"p1",
-				"player1Node"
 			],
 			[
 				"con",
@@ -130,10 +146,6 @@
 			[
 				"targe",
 				"targetGY"
-			],
-			[
-				"remove",
-				"removeChild"
 			],
 			[
 				"connect",
@@ -303,7 +315,7 @@
 			"file": "util.js",
 			"settings":
 			{
-				"buffer_size": 40455,
+				"buffer_size": 42098,
 				"line_ending": "Windows"
 			}
 		},
@@ -311,7 +323,7 @@
 			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 26153,
+				"buffer_size": 30457,
 				"line_ending": "Windows"
 			}
 		},
@@ -319,7 +331,7 @@
 			"file": "ui_tester.html",
 			"settings":
 			{
-				"buffer_size": 2655,
+				"buffer_size": 3116,
 				"line_ending": "Unix"
 			}
 		},
@@ -327,7 +339,7 @@
 			"file": "main.css",
 			"settings":
 			{
-				"buffer_size": 1649,
+				"buffer_size": 3024,
 				"line_ending": "Unix"
 			}
 		}
@@ -390,6 +402,51 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"spawn",
+			"slidev",
+			"randIn",
+			"OXYGEN_SLIDERATE",
+			"OxygenBarComp",
+			"reset",
+			"gameState",
+			"\"OVER\"",
+			"gameState",
+			"SwapScreen",
+			"swap",
+			"destroy",
+			".reset",
+			"spawn",
+			"gameState",
+			"\"gs\"",
+			"received",
+			"\"ps\"",
+			"destroy",
+			"destroy(",
+			"gameStart",
+			"gm",
+			"barcomp",
+			"Grid",
+			"gameStart",
+			"CreateGameOverScreen",
+			"nwSpawn",
+			"gameState",
+			"gameSTart",
+			"gameStart",
+			"cheats",
+			"generateMap",
+			"visible",
+			"spawn",
+			"spawn(",
+			"gameStart",
+			"gen",
+			"generateMap",
+			"p1_oxy",
+			"generateMap",
+			"();\n",
+			"generateMap",
+			"p1_ui",
+			"p1_oxy",
+			"create",
 			"pointerEv",
 			"m_slideValue",
 			"m_slidingValue",
@@ -472,52 +529,7 @@
 			"generateMap",
 			"generateItems",
 			"Item",
-			"isWalkable",
-			"Grid",
-			"[gx][gy",
-			"isCellWalkable",
-			"isWalkable",
-			"isEmpty",
-			"isGXYEqual",
-			"isCellEqual",
-			"Pointer",
-			"GameObjectMana",
-			"netOb",
-			"netObj",
-			"netComp",
-			"gobMan.addGob",
-			"item cre",
-			"item.id",
-			"Item (",
-			"Item(",
-			"Item",
-			"Grid",
-			"owner",
-			"Grid",
-			"path",
-			"bgGob",
-			"newTargetGY",
-			"newTargetGX",
-			"console",
-			"heuristicCostEstimate",
-			"MinHeap",
-			"playerID",
-			"RemoveScreen",
-			"gamenet",
-			"netob",
-			"pingLast",
-			"ping",
-			"error",
-			"close",
-			"this.pingLast",
-			"CreateConnectScreen",
-			"GameNet",
-			"m_netComponents",
-			"pingLast",
-			"pingRate",
-			"Player(",
-			"onRecv",
-			"NetComp"
+			"isWalkable"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -525,6 +537,8 @@
 		"regex": true,
 		"replace_history":
 		[
+			"kill",
+			"gameState",
 			"Rate",
 			"removeFromGrid",
 			"isRemovedAfterPickUp",
@@ -581,15 +595,15 @@
 					"file": "util.js",
 					"settings":
 					{
-						"buffer_size": 40455,
+						"buffer_size": 42098,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								22740,
-								22740
+								16980,
+								16980
 							]
 						],
 						"settings":
@@ -687,8 +701,8 @@
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
-						"translation.x": 1.0,
-						"translation.y": 0.0,
+						"translation.x": 0.0,
+						"translation.y": 9712.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -698,15 +712,15 @@
 					"file": "main.js",
 					"settings":
 					{
-						"buffer_size": 26153,
+						"buffer_size": 30457,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								15125,
-								15125
+								409,
+								409
 							]
 						],
 						"settings":
@@ -804,7 +818,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 10393.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -814,15 +828,15 @@
 					"file": "ui_tester.html",
 					"settings":
 					{
-						"buffer_size": 2655,
+						"buffer_size": 3116,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1414,
-								1509
+								2387,
+								2194
 							]
 						],
 						"settings":
@@ -921,7 +935,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 333.0,
+						"translation.y": 1163.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -931,15 +945,15 @@
 					"file": "main.css",
 					"settings":
 					{
-						"buffer_size": 1649,
+						"buffer_size": 3024,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1283,
-								1283
+								2592,
+								2592
 							]
 						],
 						"settings":
@@ -1037,7 +1051,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 679.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

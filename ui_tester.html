@@ -84,6 +84,17 @@ Please reload. \
     );
     return contentNode;
 }
+function CreateStartGameScreen()
+{
+    var contentNode = CreateDialog("StartGameScreen",
+        "Starting Game",
+        ' \
+        Please wait... \
+        '
+    );
+    return contentNode;
+}
+
 function CreateGameUIScreen()
 {
     var contentNode = document.createElement('div');
@@ -109,7 +120,7 @@ function CreateGameOverScreen()
     return contentNode;
 }
 
-SwapScreen(CreateGameOverScreen());
+SwapScreen(CreateStartGameScreen());
 
 </script>
 
