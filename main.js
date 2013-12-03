@@ -3,9 +3,9 @@ var ui;
 var context;
 var onErrorFunc;
 
-var resources;
 var gobMan;
 var rootGob;
+var bgGob;
 var player1Gob;
 var player2Gob;
 var gridOb;
@@ -30,14 +30,13 @@ function main(onErrorFunc_)
 
 	try
 	{
-		loadScript("resources.js", onResourcesLoaded);
-
 		canvas = document.getElementById('gameCanvas');
 		ui = document.getElementById("gameUI");
 		context = canvas.getContext("2d");
 
 		// input event listeners
 		registerInputEvents(canvas, true);
+		loadResources();
 	}
 	catch(e)
 	{
@@ -45,7 +44,7 @@ function main(onErrorFunc_)
 	}
 }
 
-function onResourcesLoaded()
+function loadResources()
 {
 	var imgs = {
 		"player1" : "images/player1.png",
@@ -60,8 +59,9 @@ function onResourcesLoaded()
 		"item_colc0" : "images/collect.png",
 	};
 
-	resources = new Resources();
-	resources.loadImages(imgs, init);
+	resources.onComplete = init;
+	resources.loadQueue(imgs);
+	resources.loadSpritesheet("images/Dsuit_sheet1.js", "images/Dsuit_sheet1.png");
 }
 
 function init()
@@ -81,12 +81,12 @@ function init()
 	// root gob 
 	rootGob = new GameObject();
 
-	var bgGob = new GameObject();
-	bgGob.sprite = new ImageSprite( resources.images["bg"] );
+	bgGob = new GameObject();
 	//bg does not need to be udpated
 	// gobMan.addGob("bgGob", bgGob);
 	rootGob.addChild(bgGob);
-	
+	generateBg();
+
 	player1Gob = new Player(1);
 	player2Gob = new Player(2);
 
@@ -182,6 +182,28 @@ function gameReset()
 			);
 		}
 	}
+}
+
+function generateBg()
+{
+	bgGob.removeChildren();
+
+	var bgw = resources["bg1"].w-1;
+	var bgh = resources["bg1"].h-1;
+	var x = gameWidth / bgw;
+	var y = gameHeight / bgh;
+	for(var bx = 0; bx < x; bx++)
+		for(var by = 0; by < y; by++)
+		{
+			var currgob = new GameObject();
+			currgob.sprite = resources["bg"+randInt(1,3)];
+			currgob.transform.rotate(randInt(0,3) * Math.PI / 2);
+			currgob.x = bgw * (bx + 0.5);
+			currgob.y = bgh * (by + 0.5);
+			currgob.centerSprite();
+
+			bgGob.addChild(currgob);
+		}
 }
 
 function generateMap()
@@ -540,7 +562,7 @@ function Player(playerID_)
 
 	this.playerID = playerID_;
 
-	this.sprite = new ImageSprite( resources.images["player"+this.playerID] );
+	this.sprite = resources["player"+this.playerID];
 
 	//this.vx = 1;
 
@@ -1119,8 +1141,8 @@ function Item(type_, id_, gx_, gy_, rank_, img_)
 	GameObject.call(this);
 
 	if(img_ === undefined)
-		img_ = resources.images["item_"+type_+rank_];
-	this.sprite = new ImageSprite( img_ );
+		img_ = resources["item_"+type_+rank_];
+	this.sprite = img_;
 
 	this.id = id_;
 	this.gx = gx_;
@@ -1188,7 +1210,7 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 	{
 		case "hole": // hole is the item that is buried, makes player fall
 		{
-			item = new Item(type_, id_, gx_, gy_, 0, resources.images["item_"+"item0"]);
+			item = new Item(type_, id_, gx_, gy_, 0, resources["item_"+"item0"]);
 			item.visible = true;
 			item.isCarryable = false;
 			item.onTaken = function()
@@ -1197,14 +1219,14 @@ function CreateItem(type_, id_, gx_, gy_, rank_)
 				playerGob.fall(gx_,gy_);
 				this.visible = true;
 				// change image
-				this.sprite.image = resources.images["item_"+this.type+this.rank];
+				this.sprite.image = resources["item_"+this.type+this.rank];
 				this.isPickable = false;
 			};
 		}
 		break;
 		case "tres": // treasure is the item that is buried
 		{
-			item = new Item(type_, id_, gx_, gy_, rank_, resources.images["item_"+"item0"]);
+			item = new Item(type_, id_, gx_, gy_, rank_, resources["item_"+"item0"]);
 			item.itemRank = rank_;
 			item.visible = true;
 			item.isCarryable = false;

@@ -250,15 +250,32 @@ Transform.prototype = {
     get y() { return this.f; },
     set y(value) { this.f = value; }
 };
+Transform.prototype.rotateDeg = function(deg)
+{
+    this.rotate(deg*Math.PI/180);
+};
+Transform.prototype.rotate = function(rad)
+{
+    var c = Math.cos(rad);
+    var s = Math.sin(rad);
+    this.a = c;     this.c = -s;
+    this.b = s;     this.d = c;
+};
 
 /*********************************
 * IMAGE SPRITE 
 *********************************/
-function ImageSprite(image)
+function ImageSprite(image, sx_, sy_, w_, h_)
 {
-    if(image === undefined)
-        throw "Image is undefined";
+    if(!(image instanceof HTMLImageElement))
+        throw "image is not an img element!";
+
     this.img = image;
+    // for clipping on spritesheet
+    this.sx = defaultFor(sx_, 0);
+    this.sy = defaultFor(sy_, 0);
+    this.w = defaultFor(w_, this.img.width);
+    this.h = defaultFor(h_, this.img.height);
 }
 
 ImageSprite.prototype = {
@@ -266,9 +283,9 @@ ImageSprite.prototype = {
     set image(value) { this.img = value; },
 };
 
-ImageSprite.prototype.draw = function(ctx)
+ImageSprite.prototype.draw = function(ctx, ox, oy)
 {
-    ctx.drawImage(this.img, 0, 0);
+    ctx.drawImage(this.img, this.sx, this.sy, this.w, this.h, ox,oy, this.w, this.h);
 };
 
 /*********************************
@@ -309,7 +326,7 @@ TextSprite.prototype = {
     // set vAlign(value) { this.m_vAlign = value; },
 };
 
-TextSprite.prototype.draw = function(ctx)
+TextSprite.prototype.draw = function(ctx, ox, oy)
 {
     if(this.m_cachedFont === null)
         this.m_cachedFont = this.m_size+"px "+this.m_font;
@@ -328,7 +345,7 @@ TextSprite.prototype.draw = function(ctx)
     //     y = this.m_size;
     // }
 
-    ctx.fillText(this.m_text, 0, 0);
+    ctx.fillText(this.m_text, ox, oy);
 };
 
 /*********************************
@@ -374,6 +391,10 @@ function GameObject()
     this.m_components = {};
     this.m_children = [];
     this.m_parent = null;
+
+    // offset for sprite
+    this.ox = 0;
+    this.oy = 0;
 }
 
 GameObject.prototype = {
@@ -416,8 +437,7 @@ GameObject.prototype.destroy= function()
     }
     this.m_components = null;
 
-    for(var j=this.m_children.length-1; j>=0; j--)
-        this.removeChild(this.m_children[j]);
+    this.removeChildren();
 
     this.removeParent();
 };
@@ -459,7 +479,7 @@ GameObject.prototype.draw = function(ctx)
         
     if(this.sprite !== null)
     {
-        this.sprite.draw(ctx);
+        this.sprite.draw(ctx, this.ox, this.oy);
     }
 
     // recursively draw children
@@ -528,6 +548,11 @@ GameObject.prototype.removeChild = function(gob)
         }
     }
 };
+GameObject.prototype.removeChildren = function()
+{
+    for(var j=this.m_children.length-1; j>=0; j--)
+        this.removeChild(this.m_children[j]);
+};
 GameObject.prototype.removeParent = function()
 {
     if(this.parent !== null)
@@ -536,6 +561,15 @@ GameObject.prototype.removeParent = function()
 GameObject.prototype.getChild = function(index)
 {
     return this.m_children[index];
+};
+
+GameObject.prototype.centerSprite = function()
+{
+    if(this.sprite !== null)
+    {
+        this.ox = -this.sprite.w/2;
+        this.oy = -this.sprite.h/2;
+    }
 };
 
 /*********************************
@@ -1511,3 +1545,244 @@ Net.prototype.update = function()
         this.close();
     }
 };
+
+
+
+/*********************************
+* RESOURCES 
+*********************************/
+
+// global variable
+var resources = new Resources();
+
+function Resources()
+{
+    // public variables
+    this.queues = [];
+    this.onComplete = null;
+
+    this.loadedjs = {};
+    // private variables
+    
+    // private methods
+}
+
+// public methods
+Resources.prototype.loadQueue = function(keysPaths)
+{
+    var resqueue = new ResourceQueue();
+    resqueue.load(keysPaths, function() { resources.onQueueLoaded(this); } );
+    this.queues.push( resqueue );
+};
+Resources.prototype.onLoaded = function(queue)
+{
+    // remove queue
+    for(var i=0; i < this.queues.length; i++)
+    {
+        if(this.queues[i] === queue)
+        {
+            this.queues.splice(i,1);
+            break;
+        }
+    }
+
+    // trigger event
+    if(this.queues.length === 0 && this.onComplete !== null)
+    {
+        this.onComplete();
+    }
+};
+Resources.prototype.onQueueLoaded = function(queue)
+{
+    // dump contents into self
+    for(var j=0; j< queue.array.length; j++)
+    {
+        var res = queue.array[j];
+        this[res.key] = res.value;
+    }
+
+    this.onLoaded(queue);
+};
+
+Resources.prototype.loadSpritesheet = function(datapath, imagepath)
+{
+    var resqueue = new ResourceQueue();
+    resqueue.load(
+        {
+            "data" : datapath,
+            "img" : imagepath
+        }, function() { resources.onSpritesheetLoaded(this); } );
+    this.queues.push( resqueue );
+};
+
+Resources.prototype.onSpritesheetLoaded = function(queue)
+{
+    var data = queue.array[0].value;
+    var img = queue.array[1].value;
+
+    if(data === undefined)
+        throw "data "+queue.array[0].key+"is undefined!";
+    if(img === undefined)
+        throw "image "+queue.array[1].key+"is undefined!";
+
+    // dump into self
+    var spritedata;
+    for(var i in data)
+    {
+        spritedata = data[i];
+        this[i] = new ImageSprite(img.img, spritedata.x, spritedata.y, spritedata.w, spritedata.h);
+    }
+
+    this.onLoaded(queue);
+};
+
+/*********************************
+* QUEUE 
+*********************************/
+
+function ResourceQueue()
+{
+    this.array = [];
+    this.toload = 0;
+    this.loadedCallback = null;
+}
+ResourceQueue.prototype.onload = function()
+{
+    this.toload--;
+
+    if(this.toload <= 0 && this.loadedCallback !== null)
+    {
+        this.loadedCallback();
+    }
+};
+ResourceQueue.prototype.load = function(keysPaths, loadedCallback_)
+{
+    console.log("Resources::loadImages() ");
+
+    if(this.toload !== 0)
+        throw "previous load not done yet!";
+    
+    this.loadedCallback = loadedCallback_;
+
+    var resource;
+    var path;
+    var resourceType;
+    var onloadCallback = this.onload.bind(this);
+    for(var key in keysPaths)
+    {
+        path = keysPaths[key];
+        resource = null;
+        resourceType = path.substring(path.lastIndexOf('.'));
+        switch(resourceType)
+        {
+            case ".png":
+            case ".jpg":
+            case ".gif":
+            case ".bmp":
+            {
+                resource = new ImageResource();
+                
+            }
+            break;
+            case ".js":
+            {
+                resource = new JsResource();
+            }
+            break;
+        }//end switch
+
+        if(resource !== null)
+        {
+            resource.load(key, path, onloadCallback);
+            this.array.push(resource);
+            this.toload++;
+        }
+    }
+};
+
+/*********************************
+* RESOURCE 
+*********************************/
+
+function Resource()
+{
+    this.key = null;
+    this.path = null;
+    this.value = null;
+}
+Resource.prototype.load = function(key, path)
+{
+    this.key = key;
+    this.path = path;
+};
+
+/*********************************
+* IMAGE RESOURCE 
+*********************************/
+
+function ImageResource()
+{
+    Resource.call(this);
+}
+ImageResource.prototype = Object.create(Resource.prototype);
+ImageResource.prototype.load = function(key, path, onload)
+{
+    Resource.prototype.load.call(this, key, path);
+
+    // create an image object
+    this.img = new Image();
+    var imgresource = this;
+    this.img.onload = function() {
+        imgresource.onImgLoad();
+        onload();
+    };
+    this.img.src = path;
+    
+    console.log("loading image:",key, path);
+};
+ImageResource.prototype.onImgLoad = function()
+{
+    this.value = new ImageSprite(this.img);
+};
+
+/*********************************
+* JAVASCRIPT RESOURCE 
+*********************************/
+function JsResource()
+{
+    Resource.call(this);
+}
+JsResource.prototype = Object.create(Resource.prototype);
+JsResource.prototype.load = function(key, path, onload)
+{
+    Resource.prototype.load.call(this, key, path);
+
+    // create script element
+    var script = document.createElement('script');
+    script.id = key;
+    var jsresource = this;
+    script.onload = function() {
+        jsresource.onJsLoad();
+        onload();
+    };
+    // assing src with callback name
+    script.src = path;
+    // insert script to document and load content
+    document.body.appendChild(script);
+
+    var filename = path;
+    if(filename.lastIndexOf('/') >= 0)
+        filename = filename.substring(filename.lastIndexOf('/')+1);
+    if(filename.lastIndexOf('\\') >= 0)
+        filename = filename.substring(filename.lastIndexOf('\\')+1);
+    if(filename.lastIndexOf('.') >= 0)
+        filename = filename.substring(0, filename.lastIndexOf('.'));
+
+    this.id = filename;
+};
+JsResource.prototype.onJsLoad = function()
+{
+    // pull out loaded js object from global temp
+    this.value = resources.loadedjs[this.id];
+};
+
